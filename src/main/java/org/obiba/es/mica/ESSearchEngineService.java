@@ -27,6 +27,7 @@ import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.SearchEngineService;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -39,6 +40,8 @@ import static java.util.stream.Collectors.toList;
 public class ESSearchEngineService implements SearchEngineService {
 
   private static final String ES_BRANCH = "2.4.x";
+
+  private static final String ES_CONFIG_FILE = "elasticsearch.yml";
 
   private Properties properties;
 
@@ -78,19 +81,7 @@ public class ESSearchEngineService implements SearchEngineService {
   public void start() {
     // do init stuff
     if (properties != null) {
-      File pluginWorkDir = new File(getWorkFolder(), ES_BRANCH);
-      Settings.Builder builder = Settings.settingsBuilder() //
-          .put("path.home", getInstallFolder().getAbsolutePath()) //
-          .put("path.data", new File(pluginWorkDir, "data").getAbsolutePath()) //
-          .put("path.work", new File(pluginWorkDir, "work").getAbsolutePath());
-
-      File defaultSettings = new File(getInstallFolder(), "elasticsearch.yml");
-      if (defaultSettings.exists())
-        builder.loadFromPath(defaultSettings.toPath());
-
-      builder.loadFromSource(properties.getProperty("settings", ""))
-          .put("cluster.name", getClusterName());
-
+      Settings.Builder builder = getSettings();
       if (isTransportClient())
         createTransportClient(builder);
       else
@@ -119,6 +110,11 @@ public class ESSearchEngineService implements SearchEngineService {
   @Override
   public Indexer getIndexer() {
     return esIndexer;
+  }
+
+  @Override
+  public Client getClient() {
+    return client;
   }
 
   ObjectMapper getObjectMapper() {
@@ -228,11 +224,23 @@ public class ESSearchEngineService implements SearchEngineService {
     return dataDir;
   }
 
-  public Client getClient() {
-    return client;
+  Settings getIndexSettings () {
+    return getSettings().build().getByPrefix("index.");
   }
 
-  public Settings getIndexSettings() {
-    return null;
+  private Settings.Builder getSettings() {
+    File pluginWorkDir = new File(getWorkFolder(), ES_BRANCH);
+    Settings.Builder builder = Settings.settingsBuilder() //
+        .put("path.home", getInstallFolder().getAbsolutePath()) //
+        .put("path.data", new File(pluginWorkDir, "data").getAbsolutePath()) //
+        .put("path.work", new File(pluginWorkDir, "work").getAbsolutePath());
+
+    File defaultSettings = new File(getInstallFolder(), ES_CONFIG_FILE);
+    if (defaultSettings.exists())
+      builder.loadFromPath(defaultSettings.toPath());
+
+    builder.loadFromSource(properties.getProperty("settings", ""))
+        .put("cluster.name", getClusterName());
+    return builder;
   }
 }
