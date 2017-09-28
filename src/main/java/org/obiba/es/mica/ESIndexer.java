@@ -40,7 +40,7 @@ public class ESIndexer implements Indexer {
 
   private static final int MAX_SIZE = 10000;
 
-  private ESSearchEngineService esSearchService;
+  private final ESSearchEngineService esSearchService;
 
   public ESIndexer(ESSearchEngineService esSearchService) {
     this.esSearchService = esSearchService;

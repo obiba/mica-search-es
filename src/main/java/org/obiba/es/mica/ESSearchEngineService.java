@@ -25,9 +25,9 @@ import org.obiba.es.mica.mapping.*;
 import org.obiba.mica.spi.search.ConfigurationProvider;
 import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.SearchEngineService;
+import org.obiba.mica.spi.search.Searcher;
 
 import java.io.File;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -52,6 +52,8 @@ public class ESSearchEngineService implements SearchEngineService {
   private Client client;
 
   private ESIndexer esIndexer;
+
+  private ESSearcher esSearcher;
 
   private ConfigurationProvider configurationProvider;
 
@@ -88,6 +90,8 @@ public class ESSearchEngineService implements SearchEngineService {
         createNodeClient(builder);
 
       esIndexer = new ESIndexer(this);
+      esSearcher = new ESSearcher(this);
+
 
       running = true;
     }
@@ -113,6 +117,10 @@ public class ESSearchEngineService implements SearchEngineService {
   }
 
   @Override
+  public Searcher getSearcher() {
+    return esSearcher;
+  }
+
   public Client getClient() {
     return client;
   }
@@ -224,7 +232,7 @@ public class ESSearchEngineService implements SearchEngineService {
     return dataDir;
   }
 
-  Settings getIndexSettings () {
+  Settings getIndexSettings() {
     return getSettings().build().getByPrefix("index.");
   }
 
