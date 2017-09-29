@@ -12,7 +12,12 @@ package org.obiba.es.mica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Iterables;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.ReadContext;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
 import org.elasticsearch.action.index.IndexRequestBuilder;
@@ -20,10 +25,13 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.obiba.mica.spi.search.IndexFieldMapping;
 import org.obiba.mica.spi.search.Indexable;
 import org.obiba.mica.spi.search.Indexer;
 import org.slf4j.Logger;
@@ -31,7 +39,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Persistable;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 public class ESIndexer implements Indexer {
@@ -186,9 +196,22 @@ public class ESIndexer implements Indexer {
     getClient().admin().indices().prepareDelete(indexName).execute().actionGet();
   }
 
+  @Override
+  public IndexFieldMapping getIndexfieldMapping(String indexName, String type) {
+    return new IndexFieldMappingImpl(hasIndex(indexName) ? getContext(indexName, type) : null);
+  }
+
   //
   // Private methods
   //
+
+  private ReadContext getContext(String indexName, String indexType) {
+    GetMappingsResponse result = getClient().admin().indices().prepareGetMappings(indexName).execute().actionGet();
+    ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mappings = result.getMappings();
+    MappingMetaData metaData = mappings.get(indexName).get(indexType);
+    Object jsonContent = Configuration.defaultConfiguration().jsonProvider().parse(metaData.source().toString());
+    return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(jsonContent);
+  }
 
   private Client getClient() {
     return esSearchService.getClient();
@@ -228,6 +251,27 @@ public class ESIndexer implements Indexer {
       indicesAdmin.prepareCreate(indexName).setSettings(settings).execute().actionGet();
       esSearchService.getIndexConfigurationListeners().forEach(listener -> listener.onIndexCreated(esSearchService, indexName));
     }
+  }
+
+  private static class IndexFieldMappingImpl implements IndexFieldMapping {
+
+    private final ReadContext context;
+
+    IndexFieldMappingImpl(ReadContext ctx) {
+      this.context = ctx;
+    }
+
+    @Override
+    public boolean isAnalyzed(String fieldName) {
+      boolean analyzed = false;
+      if (context != null) {
+        List<Object> result = context.read(String.format("$..%s..analyzed", fieldName.replaceAll("\\.", "..")));
+        analyzed = result.size() > 0;
+      }
+
+      return analyzed;
+    }
+
   }
 
 }

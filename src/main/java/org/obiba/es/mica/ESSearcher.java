@@ -11,10 +11,9 @@
 package org.obiba.es.mica;
 
 import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.client.AdminClient;
 import org.obiba.mica.spi.search.Searcher;
 
-public class ESSearcher implements Searcher{
+public class ESSearcher implements Searcher {
 
   private final ESSearchEngineService esSearchService;
 
@@ -27,8 +26,4 @@ public class ESSearcher implements Searcher{
     return esSearchService.getClient().prepareSearch(indices);
   }
 
-  @Override
-  public AdminClient admin() {
-    return esSearchService.getClient().admin();
-  }
 }
