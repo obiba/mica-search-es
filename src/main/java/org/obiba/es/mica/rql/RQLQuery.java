@@ -47,9 +47,9 @@ public class RQLQuery implements Query {
 
   private List<SortBuilder> sortBuilders;
 
-  private List<String> aggregations;
+  private List<String> aggregations = Lists.newArrayList();
 
-  private List<String> aggregationBuckets;
+  private List<String> aggregationBuckets = Lists.newArrayList();
 
   private List<String> sourceFields = null;
 

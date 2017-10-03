@@ -24,6 +24,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -75,6 +76,7 @@ public class ESSearcher implements Searcher {
   public DocumentResults find(String indexName, String type, String rql) {
     RQLQuery query = new RQLQuery(rql);
     QueryBuilder queryBuilder = query.isValid() ? query.getQueryBuilder() : QueryBuilders.matchAllQuery();
+
     SearchRequestBuilder request = getClient().prepareSearch()
         .setIndices(indexName)
         .setTypes(type)
@@ -86,6 +88,28 @@ public class ESSearcher implements Searcher {
       query.getSortBuilders().forEach(request::addSort);
     else
       request.addSort(SortBuilders.scoreSort().order(SortOrder.DESC));
+
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
+
+    return new SearchResponseDocumentResults(response);
+  }
+
+  @Override
+  public DocumentResults count(String indexName, String type, String rql, IdFilter idFilter) {
+    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    RQLQuery query = new RQLQuery(rql);
+    QueryBuilder queryBuilder = query.isValid() ? query.getQueryBuilder() : QueryBuilders.matchAllQuery();
+
+    SearchRequestBuilder request = getClient().prepareSearch(indexName)
+        .setTypes(type)
+        .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
+        .setFrom(0)
+        .setSize(0);
+
+    query.getAggregations().forEach(field -> request.addAggregation(AggregationBuilders.terms(field).field(field).size(0)));
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
@@ -338,6 +362,12 @@ public class ESSearcher implements Searcher {
       return StreamSupport.stream(response.getHits().spliterator(), false)
           .map(SearchHitDocumentResult::new)
           .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, Long> getAggregation(String field) {
+      Terms aggregation = response.getAggregations().get(field);
+      return aggregation.getBuckets().stream().collect(Collectors.toMap(MultiBucketsAggregation.Bucket::getKeyAsString, MultiBucketsAggregation.Bucket::getDocCount));
     }
   }
 
