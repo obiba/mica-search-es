@@ -74,10 +74,11 @@ public class ESSearcher implements Searcher {
   @Override
   public DocumentResults find(String indexName, String type, String rql) {
     RQLQuery query = new RQLQuery(rql);
+    QueryBuilder queryBuilder = query.isValid() ? query.getQueryBuilder() : QueryBuilders.matchAllQuery();
     SearchRequestBuilder request = getClient().prepareSearch()
         .setIndices(indexName)
         .setTypes(type)
-        .setQuery(query.getQueryBuilder())
+        .setQuery(queryBuilder)
         .setFrom(query.getFrom())
         .setSize(query.getSize());
 

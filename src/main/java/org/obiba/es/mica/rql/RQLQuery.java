@@ -285,6 +285,8 @@ public class RQLQuery implements Query {
             return visitExists(node);
           case MISSING:
             return visitMissing(node);
+          case QUERY:
+            return visitQuery(node);
           default:
         }
       } catch(IllegalArgumentException e) {
@@ -456,7 +458,12 @@ public class RQLQuery implements Query {
     private QueryBuilder visitMissing(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       visitField(field);
-      return QueryBuilders.missingQuery(field);
+      return QueryBuilders.boolQuery().mustNot(visitExists(node));
+    }
+
+    private QueryBuilder visitQuery(ASTNode node) {
+      String query = node.getArgument(0).toString().replaceAll("\\+", " ");
+      return QueryBuilders.queryStringQuery(query);
     }
 
     private void visitField(String field) {

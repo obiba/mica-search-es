@@ -24,6 +24,34 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class RQLQueryTest {
 
   @Test
+  public void test_rql_query_query_string() throws IOException {
+    String rql
+        = "variable(query(paino+nature:CATEGORICAL))";
+    RQLQuery rqlQuery = new RQLQuery(rql);
+    assertThat(rqlQuery.hasQueryBuilder()).isTrue();
+    String expected = "{\n" +
+        "  \"query_string\" : {\n" +
+        "    \"query\" : \"paino nature:CATEGORICAL\"\n" +
+        "  }\n" +
+        "}";
+    assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
+  }
+
+  @Test
+  public void test_rql_query_query_string_with_parenthesis() throws IOException {
+    String rql
+        = "variable(query(paino+AND+(nature:CATEGORICAL+OR+nature:CONTINUOUS)))";
+    RQLQuery rqlQuery = new RQLQuery(rql);
+    assertThat(rqlQuery.hasQueryBuilder()).isTrue();
+    String expected = "{\n" +
+        "  \"query_string\" : {\n" +
+        "    \"query\" : \"paino AND (nature:CATEGORICAL OR nature:CONTINUOUS)\"\n" +
+        "  }\n" +
+        "}";
+    assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
+  }
+
+  @Test
   public void test_rql_query_many_and_args() throws IOException {
     String rql
         = "variable(and(eq(datasetId,ds1),eq(studyId,std1),eq(variableType,Dataschema)))";
@@ -236,8 +264,12 @@ public class RQLQueryTest {
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"missing\" : {\n" +
-        "    \"field\" : \"tutu\"\n" +
+        "  \"bool\" : {\n" +
+        "    \"must_not\" : {\n" +
+        "      \"exists\" : {\n" +
+        "        \"field\" : \"tutu\"\n" +
+        "      }\n" +
+        "    }\n" +
         "  }\n" +
         "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
