@@ -52,7 +52,17 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
   }
 
   protected Taxonomy getTaxonomy() {
-    return configurationProvider.getTaxonomy(getTarget());
+    switch (getTarget()) {
+      case VARIABLE:
+        return configurationProvider.getVariableTaxonomy();
+      case DATASET:
+        return configurationProvider.getDatasetTaxonomy();
+      case STUDY:
+        return configurationProvider.getStudyTaxonomy();
+      case NETWORK:
+        return configurationProvider.getNetworkTaxonomy();
+    }
+    return null;
   }
 
   protected void addLocalizedVocabularies(Taxonomy taxonomy, String... fields) {

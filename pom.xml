@@ -34,9 +34,10 @@
     <elasticsearch.version>2.4.5</elasticsearch.version>
     <junit.version>4.12</junit.version>
     <logback.version>1.1.3</logback.version>
-    <obiba-commons.version>1.9-SNAPSHOT</obiba-commons.version>
     <mica.version>3.1-SNAPSHOT</mica.version>
-    <slf4j.version>1.5.6</slf4j.version>
+    <obiba-commons.version>1.9-SNAPSHOT</obiba-commons.version>
+    <rql-parser.version>0.3.1</rql-parser.version>
+    <slf4j.version>1.7.21</slf4j.version>
 
     <maven-antrun-plugin.version>1.7</maven-antrun-plugin.version>
     <maven-assembly-plugin.version>3.0.0</maven-assembly-plugin.version>
@@ -78,6 +79,12 @@
     </dependency>
 
     <dependency>
+      <groupId>net.jazdw</groupId>
+      <artifactId>rql-parser</artifactId>
+      <version>${rql-parser.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
@@ -86,7 +93,7 @@
 
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>jcl104-over-slf4j</artifactId>
+      <artifactId>jcl-over-slf4j</artifactId>
       <version>${slf4j.version}</version>
       <type>jar</type>
     </dependency>

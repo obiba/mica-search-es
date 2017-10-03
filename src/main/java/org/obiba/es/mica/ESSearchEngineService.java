@@ -125,6 +125,10 @@ public class ESSearchEngineService implements SearchEngineService {
     return client;
   }
 
+  ConfigurationProvider getConfigurationProvider() {
+    return configurationProvider;
+  }
+
   ObjectMapper getObjectMapper() {
     if (configurationProvider == null || configurationProvider.getObjectMapper() == null) {
       ObjectMapper mapper = new ObjectMapper();

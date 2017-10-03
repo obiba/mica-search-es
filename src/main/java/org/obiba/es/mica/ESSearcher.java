@@ -27,7 +27,11 @@ import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
+import org.obiba.es.mica.rql.RQLJoinQuery;
+import org.obiba.es.mica.rql.RQLQuery;
 import org.obiba.mica.spi.search.Searcher;
+import org.obiba.mica.spi.search.support.JoinQuery;
+import org.obiba.mica.spi.search.support.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +60,41 @@ public class ESSearcher implements Searcher {
   }
 
   @Override
+  public JoinQuery makeJoinQuery(String rql) {
+    RQLJoinQuery joinQuery = new RQLJoinQuery(esSearchService.getConfigurationProvider(), esSearchService.getIndexer());
+    joinQuery.initialize(rql);
+    return joinQuery;
+  }
+
+  @Override
+  public Query makeQuery(String rql) {
+    return new RQLQuery(rql);
+  }
+
+  @Override
+  public DocumentResults find(String indexName, String type, String rql) {
+    RQLQuery query = new RQLQuery(rql);
+    SearchRequestBuilder request = getClient().prepareSearch()
+        .setIndices(indexName)
+        .setTypes(type)
+        .setQuery(query.getQueryBuilder())
+        .setFrom(query.getFrom())
+        .setSize(query.getSize());
+
+    if (query.hasSortBuilders())
+      query.getSortBuilders().forEach(request::addSort);
+    else
+      request.addSort(SortBuilders.scoreSort().order(SortOrder.DESC));
+
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
+
+    return new SearchResponseDocumentResults(response);
+  }
+
+  @Override
   public List<String> suggest(String indexName, String type, int limit, String locale, String queryString, String defaultFieldName) {
     String fieldName = defaultFieldName + "." + locale;
 
@@ -63,7 +102,7 @@ public class ESSearcher implements Searcher {
         .defaultField(fieldName + ".analyzed")
         .defaultOperator(QueryStringQueryBuilder.Operator.OR);
 
-    SearchRequestBuilder search = getClient().prepareSearch() //
+    SearchRequestBuilder request = getClient().prepareSearch() //
         .setIndices(indexName) //
         .setTypes(type) //
         .setQuery(queryExec) //
@@ -72,9 +111,10 @@ public class ESSearcher implements Searcher {
         .addSort(SortBuilders.scoreSort().order(SortOrder.DESC))
         .setFetchSource(new String[]{fieldName}, null);
 
-    log.debug(String.format("Request /%s/%s", indexName, type));
-    if (log.isTraceEnabled()) log.trace(String.format("Request /%s/%s: %s", indexName, type, search.toString()));
-    SearchResponse response = search.execute().actionGet();
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
 
     List<String> names = Lists.newArrayList();
     response.getHits().forEach(hit -> {
@@ -92,13 +132,15 @@ public class ESSearcher implements Searcher {
   public InputStream getDocumentById(String indexName, String type, String id) {
     QueryBuilder query = QueryBuilders.idsQuery(type).addIds(id);
 
-    SearchRequestBuilder search = getClient().prepareSearch() //
+    SearchRequestBuilder request = getClient().prepareSearch() //
         .setIndices(indexName) //
         .setTypes(type) //
         .setQuery(query);
 
-    log.debug("Request: {}", search.toString());
-    SearchResponse response = search.execute().actionGet();
+    log.debug("Request: /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
 
     if (response.getHits().totalHits() == 0) return null;
     return new ByteArrayInputStream(response.getHits().hits()[0].getSourceAsString().getBytes());
@@ -110,13 +152,15 @@ public class ESSearcher implements Searcher {
     query = QueryBuilders.boolQuery().must(query)
         .must(QueryBuilders.idsQuery(type).addIds(id));
 
-    SearchRequestBuilder search = getClient().prepareSearch() //
+    SearchRequestBuilder request = getClient().prepareSearch() //
         .setIndices(indexName) //
         .setTypes(type) //
         .setQuery(query);
 
     log.info("Request /{}/{}", indexName, type);
-    SearchResponse response = search.execute().actionGet();
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
 
     if (response.getHits().totalHits() == 0) return null;
     return new ByteArrayInputStream(response.getHits().hits()[0].getSourceAsString().getBytes());
@@ -134,7 +178,7 @@ public class ESSearcher implements Searcher {
 
     QueryBuilder postFilter = getPostFilter(termFilter, idFilter);
 
-    SearchRequestBuilder search = getClient().prepareSearch() //
+    SearchRequestBuilder request = getClient().prepareSearch() //
         .setIndices(indexName) //
         .setTypes(type) //
         .setQuery(postFilter == null ? query : QueryBuilders.boolQuery().must(query).must(postFilter)) //
@@ -142,12 +186,14 @@ public class ESSearcher implements Searcher {
         .setSize(limit);
 
     if (sort != null) {
-      search.addSort(
+      request.addSort(
           SortBuilders.fieldSort(sort).order(order == null ? SortOrder.ASC : SortOrder.valueOf(order.toUpperCase())));
     }
 
-    log.debug("Request: {}", search.toString());
-    SearchResponse response = search.execute().actionGet();
+    log.info("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
 
     return new SearchResponseDocumentResults(response);
   }
@@ -169,7 +215,7 @@ public class ESSearcher implements Searcher {
       execQuery = boolQueryBuilder.must(execQuery);
     }
 
-    SearchRequestBuilder search = getClient().prepareSearch() //
+    SearchRequestBuilder request = getClient().prepareSearch() //
         .setIndices(indexName) //
         .setTypes(type) //
         .setQuery(execQuery) //
@@ -177,14 +223,14 @@ public class ESSearcher implements Searcher {
         .setSize(limit);
 
     if (sort != null) {
-      search.addSort(
+      request.addSort(
           SortBuilders.fieldSort(sort).order(order == null ? SortOrder.ASC : SortOrder.valueOf(order.toUpperCase())));
     }
 
-    log.debug(String.format("Request /%s/%s", indexName, type));
-    if (log.isTraceEnabled()) log.trace(String.format("Request /%s/%s: %s", indexName, type, search.toString()));
-    SearchResponse response = search.execute().actionGet();
-    log.debug(String.format("Response /%s/%s", indexName, type));
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
 
     return new SearchResponseDocumentResults(response);
   }
@@ -194,7 +240,7 @@ public class ESSearcher implements Searcher {
     BoolQueryBuilder builder = QueryBuilders.boolQuery()
         .should(QueryBuilders.existsQuery(field));
 
-    SearchRequestBuilder requestBuilder = getClient().prepareSearch(indexName) //
+    SearchRequestBuilder request = getClient().prepareSearch(indexName) //
         .setTypes(type) //
         .setSearchType(SearchType.DFS_QUERY_THEN_FETCH) //
         .setQuery(builder)
@@ -203,9 +249,10 @@ public class ESSearcher implements Searcher {
         .addAggregation(AggregationBuilders.terms(field.replaceAll("\\.", "-")).field(field));
 
     try {
-      log.debug(String.format("Request /%s/%s: %s", indexName, type, requestBuilder));
-      SearchResponse response = requestBuilder.execute().actionGet();
-      log.debug(String.format("Response /%s/%s: %s", indexName, type, response));
+      log.debug("Request /{}/{}: {}", indexName, type, request);
+      if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+      SearchResponse response = request.execute().actionGet();
+      log.debug("Response /{}/{}: {}", indexName, type, response);
 
       return response.getAggregations().asList().stream().flatMap(a -> ((Terms) a).getBuckets().stream())
           .map(a -> a.getKey().toString()).distinct().collect(Collectors.toList()).size();
@@ -269,7 +316,7 @@ public class ESSearcher implements Searcher {
     return QueryBuilders.boolQuery().must(includedFilter).mustNot(excludedFilter);
   }
 
-    private Client getClient() {
+  private Client getClient() {
     return esSearchService.getClient();
   }
 
