@@ -9,7 +9,7 @@ Homepage: http://www.obiba.org
 Package: mica-search-es
 Architecture: all
 Pre-Depends:
-Depends: mica (>= 3.1)
+Depends: mica2 (>= 3.1)
 Description: OBiBa Mica Search ES
  Mica Search ES installs a Mica search plugin based on Elasticsearch 2.4.x.
  .
