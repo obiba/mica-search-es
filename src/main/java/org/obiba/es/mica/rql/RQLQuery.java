@@ -281,6 +281,8 @@ public class RQLQuery implements Query {
             return visitBetween(node);
           case MATCH:
             return visitMatch(node);
+          case LIKE:
+            return visitLike(node);
           case EXISTS:
             return visitExists(node);
           case MISSING:
@@ -447,6 +449,13 @@ public class RQLQuery implements Query {
         }
       }
       return builder;
+    }
+
+    private QueryBuilder visitLike(ASTNode node) {
+      String field = resolveField(node.getArgument(0).toString()).getField();
+      Object value = node.getArgument(1);
+      visitField(field);
+      return QueryBuilders.wildcardQuery(field, value.toString());
     }
 
     private QueryBuilder visitExists(ASTNode node) {
