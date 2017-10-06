@@ -134,6 +134,7 @@ public class RQLQuery implements Query {
         case DATASET:
         case STUDY:
         case NETWORK:
+        case GENERIC:
           node.getArguments().stream().map(a -> (ASTNode) a).forEach(n -> {
             switch (RQLNode.valueOf(n.getName().toUpperCase())) {
               case LIMIT:
