@@ -15,7 +15,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -45,6 +44,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static org.elasticsearch.action.search.SearchType.DFS_QUERY_THEN_FETCH;
+
 public class ESSearcher implements Searcher {
 
   private static final Logger log = LoggerFactory.getLogger(Searcher.class);
@@ -73,16 +74,20 @@ public class ESSearcher implements Searcher {
   }
 
   @Override
-  public DocumentResults find(String indexName, String type, String rql) {
+  public DocumentResults find(String indexName, String type, String rql, IdFilter idFilter) {
+
+    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+
     RQLQuery query = new RQLQuery(rql);
     QueryBuilder queryBuilder = query.isValid() ? query.getQueryBuilder() : QueryBuilders.matchAllQuery();
 
     SearchRequestBuilder request = getClient().prepareSearch()
-        .setIndices(indexName)
-        .setTypes(type)
-        .setQuery(queryBuilder)
-        .setFrom(query.getFrom())
-        .setSize(query.getSize());
+            .setIndices(indexName)
+            .setTypes(type)
+            .setSearchType(DFS_QUERY_THEN_FETCH)
+            .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter))
+            .setFrom(query.getFrom())
+            .setSize(query.getSize());
 
     if (query.hasSortBuilders())
       query.getSortBuilders().forEach(request::addSort);
@@ -267,7 +272,7 @@ public class ESSearcher implements Searcher {
 
     SearchRequestBuilder request = getClient().prepareSearch(indexName) //
         .setTypes(type) //
-        .setSearchType(SearchType.DFS_QUERY_THEN_FETCH) //
+        .setSearchType(DFS_QUERY_THEN_FETCH) //
         .setQuery(builder)
         .setFrom(0) //
         .setSize(0)
