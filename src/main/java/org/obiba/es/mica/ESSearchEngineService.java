@@ -241,7 +241,7 @@ public class ESSearchEngineService implements SearchEngineService {
   }
 
   private Settings.Builder getSettings() {
-    File pluginWorkDir = new File(getWorkFolder(), ES_BRANCH);
+    File pluginWorkDir = new File(getWorkFolder(), properties.getProperty("es.version", ES_BRANCH));
     Settings.Builder builder = Settings.settingsBuilder() //
         .put("path.home", getInstallFolder().getAbsolutePath()) //
         .put("path.data", new File(pluginWorkDir, "data").getAbsolutePath()) //
