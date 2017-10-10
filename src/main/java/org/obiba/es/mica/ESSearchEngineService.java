@@ -139,7 +139,7 @@ public class ESSearchEngineService implements SearchEngineService {
     return configurationProvider.getObjectMapper();
   }
 
-  Set<Indexer.IndexConfigurationListener> getIndexConfigurationListeners() {
+  synchronized Set<Indexer.IndexConfigurationListener> getIndexConfigurationListeners() {
     if (indexConfigurationListeners == null) {
       indexConfigurationListeners = Sets.newHashSet();
       indexConfigurationListeners.add(new VariableIndexConfiguration(configurationProvider));

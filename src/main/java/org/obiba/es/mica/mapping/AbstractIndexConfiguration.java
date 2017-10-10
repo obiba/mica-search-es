@@ -27,10 +27,7 @@ import org.slf4j.LoggerFactory;
 import sun.util.locale.LanguageTag;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigurationListener {
@@ -52,17 +49,24 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
   }
 
   protected Taxonomy getTaxonomy() {
+    Taxonomy taxonomy = null;
     switch (getTarget()) {
       case VARIABLE:
-        return configurationProvider.getVariableTaxonomy();
+        taxonomy = configurationProvider.getVariableTaxonomy();
+        break;
       case DATASET:
-        return configurationProvider.getDatasetTaxonomy();
+        taxonomy = configurationProvider.getDatasetTaxonomy();
+        break;
       case STUDY:
-        return configurationProvider.getStudyTaxonomy();
+        taxonomy = configurationProvider.getStudyTaxonomy();
+        break;
       case NETWORK:
-        return configurationProvider.getNetworkTaxonomy();
+        taxonomy = configurationProvider.getNetworkTaxonomy();
+        break;
     }
-    return null;
+    if (taxonomy == null)
+      throw new NoSuchElementException("No taxonomy for type: " + getTarget());
+    return taxonomy;
   }
 
   protected void addLocalizedVocabularies(Taxonomy taxonomy, String... fields) {
