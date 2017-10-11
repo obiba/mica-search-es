@@ -8,7 +8,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.obiba.es.mica.rql;
+package org.obiba.es.mica.query;
 
 import net.jazdw.rql.converter.Converter;
 import net.jazdw.rql.converter.ConverterException;

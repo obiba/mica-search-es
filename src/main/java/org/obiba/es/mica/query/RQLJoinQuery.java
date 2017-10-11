@@ -8,7 +8,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.obiba.es.mica.rql;
+package org.obiba.es.mica.query;
 
 import net.jazdw.rql.parser.ASTNode;
 import net.jazdw.rql.parser.RQLParser;
@@ -18,6 +18,7 @@ import org.obiba.mica.spi.search.IndexFieldMapping;
 import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.rql.RQLFieldResolver;
 import org.obiba.mica.spi.search.rql.RQLNode;
+import org.obiba.mica.spi.search.support.EmptyQuery;
 import org.obiba.mica.spi.search.support.JoinQuery;
 import org.obiba.mica.spi.search.support.Query;
 import org.obiba.opal.core.domain.taxonomy.Taxonomy;
@@ -39,13 +40,13 @@ public class RQLJoinQuery implements JoinQuery {
 
   private String locale = DEFAULT_LOCALE;
 
-  private RQLQuery variableQuery;
+  private Query variableQuery;
 
-  private RQLQuery datasetQuery;
+  private Query datasetQuery;
 
-  private RQLQuery studyQuery;
+  private Query studyQuery;
 
-  private RQLQuery networkQuery;
+  private Query networkQuery;
 
   private List<RQLNode> nodeTypes = new ArrayList<>();
 
@@ -66,42 +67,42 @@ public class RQLJoinQuery implements JoinQuery {
 
     // make sure we have initialize everyone
     if (variableQuery == null) {
-      variableQuery = new RQLQuery("");
+      variableQuery = new EmptyQuery();
     }
     if (datasetQuery == null) {
-      datasetQuery = new RQLQuery("");
+      datasetQuery = new EmptyQuery();
     }
     if (studyQuery == null) {
-      studyQuery = new RQLQuery("");
+      studyQuery = new EmptyQuery();
     }
     if (networkQuery == null) {
-      networkQuery = new RQLQuery("");
+      networkQuery = new EmptyQuery();
     }
   }
 
   @Override
   public boolean isWithFacets() {
-    return false;
+    return withFacets;
   }
 
   @Override
   public Query getVariableQuery() {
-    return null;
+    return variableQuery;
   }
 
   @Override
   public Query getDatasetQuery() {
-    return null;
+    return datasetQuery;
   }
 
   @Override
   public Query getStudyQuery() {
-    return null;
+    return studyQuery;
   }
 
   @Override
   public Query getNetworkQuery() {
-    return null;
+    return networkQuery;
   }
 
   //
