@@ -53,6 +53,8 @@ public class RQLQuery implements ESQuery {
 
   private List<String> aggregationBuckets = Lists.newArrayList();
 
+  private List<String> queryAggregationBuckets = Lists.newArrayList();
+
   private List<String> sourceFields = Lists.newArrayList();
 
   private final Map<String, Map<String, List<String>>> taxonomyTermsMap = Maps.newHashMap();
@@ -104,7 +106,13 @@ public class RQLQuery implements ESQuery {
   }
 
   @Override
+  public List<String> getQueryAggregationBuckets() {
+    return queryAggregationBuckets;
+  }
+
+  @Override
   public void ensureAggregationBuckets(List<String> additionalAggregationBuckets) {
+    aggregationBuckets.addAll(queryAggregationBuckets);
     for (String agg : additionalAggregationBuckets) {
       if (!aggregationBuckets.contains(agg)) aggregationBuckets.add(agg);
     }
@@ -214,7 +222,7 @@ public class RQLQuery implements ESQuery {
     RQLAggregateBuilder aggregate = new RQLAggregateBuilder(rqlFieldResolver);
     if (node.accept(aggregate)) {
       aggregations = aggregate.getAggregations();
-      aggregationBuckets = aggregate.getAggregationBuckets();
+      queryAggregationBuckets = aggregate.getAggregationBuckets();
     }
   }
 

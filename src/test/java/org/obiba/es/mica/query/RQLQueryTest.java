@@ -463,10 +463,10 @@ public class RQLQueryTest {
     assertThat(rqlQuery.getAggregations().size()).isEqualTo(2);
     assertThat(rqlQuery.getAggregations().get(0)).isEqualTo("Mlstr_area.Lifestyle_behaviours");
     assertThat(rqlQuery.getAggregations().get(1)).isEqualTo("Mlstr_area.Diseases");
-    assertThat(rqlQuery.getAggregationBuckets()).isNotNull();
-    assertThat(rqlQuery.getAggregationBuckets().size()).isEqualTo(2);
-    assertThat(rqlQuery.getAggregationBuckets().get(0)).isEqualTo("studyId");
-    assertThat(rqlQuery.getAggregationBuckets().get(1)).isEqualTo("datasetId");
+    assertThat(rqlQuery.getQueryAggregationBuckets()).isNotNull();
+    assertThat(rqlQuery.getQueryAggregationBuckets().size()).isEqualTo(2);
+    assertThat(rqlQuery.getQueryAggregationBuckets().get(0)).isEqualTo("studyId");
+    assertThat(rqlQuery.getQueryAggregationBuckets().get(1)).isEqualTo("datasetId");
   }
 
   @Test
