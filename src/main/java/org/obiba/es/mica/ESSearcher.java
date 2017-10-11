@@ -13,23 +13,29 @@ package org.obiba.es.mica;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
-import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
-import org.obiba.es.mica.rql.RQLJoinQuery;
-import org.obiba.es.mica.rql.RQLQuery;
+import org.obiba.es.mica.query.AndQuery;
+import org.obiba.es.mica.query.RQLJoinQuery;
+import org.obiba.es.mica.query.RQLQuery;
+import org.obiba.es.mica.results.ESResponseDocumentResults;
+import org.obiba.es.mica.support.AggregationParser;
+import org.obiba.mica.spi.search.QueryScope;
 import org.obiba.mica.spi.search.Searcher;
+import org.obiba.mica.spi.search.support.EmptyQuery;
 import org.obiba.mica.spi.search.support.JoinQuery;
 import org.obiba.mica.spi.search.support.Query;
 import org.slf4j.Logger;
@@ -37,14 +43,17 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static org.elasticsearch.action.search.SearchType.DFS_QUERY_THEN_FETCH;
+import static org.obiba.mica.spi.search.QueryScope.AGGREGATION;
+import static org.obiba.mica.spi.search.QueryScope.DETAIL;
 
 public class ESSearcher implements Searcher {
 
@@ -52,17 +61,15 @@ public class ESSearcher implements Searcher {
 
   private final ESSearchEngineService esSearchService;
 
-  public ESSearcher(ESSearchEngineService esSearchService) {
+  private final AggregationParser aggregationParser = new AggregationParser();
+
+  ESSearcher(ESSearchEngineService esSearchService) {
     this.esSearchService = esSearchService;
   }
-
-  @Override
-  public SearchRequestBuilder prepareSearch(String... indices) {
-    return getClient().prepareSearch(indices);
-  }
-
+  
   @Override
   public JoinQuery makeJoinQuery(String rql) {
+    log.info("makeJoinQuery: {}", rql);
     RQLJoinQuery joinQuery = new RQLJoinQuery(esSearchService.getConfigurationProvider(), esSearchService.getIndexer());
     joinQuery.initialize(rql);
     return joinQuery;
@@ -70,7 +77,130 @@ public class ESSearcher implements Searcher {
 
   @Override
   public Query makeQuery(String rql) {
+    log.info("makeQuery: {}", rql);
+    if (Strings.isNullOrEmpty(rql)) return new EmptyQuery();
     return new RQLQuery(rql);
+  }
+
+  @Override
+  public Query andQuery(Query... queries) {
+    return new AndQuery(queries);
+  }
+
+  @Override
+  public DocumentResults query(String indexName, String type, Query query, QueryScope scope, List<String> mandatorySourceFields, Properties aggregationProperties, @Nullable IdFilter idFilter) throws IOException {
+
+    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+
+    SearchRequestBuilder request = getClient().prepareSearch(indexName)
+        .setTypes(type)
+        .setSearchType(SearchType.QUERY_THEN_FETCH) //
+        .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
+        .setFrom(query.getFrom()) //
+        .setSize(scope == DETAIL ? query.getSize() : 0) //
+        .addAggregation(AggregationBuilders.global(AGG_TOTAL_COUNT));
+
+    List<String> sourceFields = getSourceFields(query, mandatorySourceFields);
+
+    if (AGGREGATION == scope) {
+      request.setNoFields();
+    } else if (sourceFields != null) {
+      if (sourceFields.isEmpty()) request.setNoFields();
+      else request.setFetchSource(sourceFields.toArray(new String[sourceFields.size()]), null);
+    }
+
+    if (!query.isEmpty()) ((ESQuery) query).getSortBuilders().forEach(request::addSort);
+
+    appendAggregations(request, query.getAggregationBuckets(), aggregationProperties);
+
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
+    if (log.isTraceEnabled())
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().totalHits());
+
+    return new ESResponseDocumentResults(response);
+  }
+
+  @Override
+  public DocumentResults cover(String indexName, String type, Query query, Properties aggregationProperties, @Nullable IdFilter idFilter) {
+    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+
+    SearchRequestBuilder request = getClient().prepareSearch(indexName)
+        .setTypes(type)
+        .setSearchType(SearchType.QUERY_THEN_FETCH) //
+        .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
+        .setFrom(0) //
+        .setSize(0) // no results needed for a coverage
+        .setNoFields()
+        .addAggregation(AggregationBuilders.global(Searcher.AGG_TOTAL_COUNT));
+
+    appendAggregations(request, query.getAggregationBuckets(), aggregationProperties);
+
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
+    if (log.isTraceEnabled())
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().totalHits());
+
+    return new ESResponseDocumentResults(response);
+  }
+
+  @Override
+  public DocumentResults cover(String indexName, String type, Query query, Properties aggregationProperties, Map<String, Properties> subAggregationProperties, @Nullable IdFilter idFilter) {
+    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+
+    SearchRequestBuilder request = getClient().prepareSearch(indexName)
+        .setTypes(type)
+        .setSearchType(SearchType.QUERY_THEN_FETCH) //
+        .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
+        .setFrom(0) //
+        .setSize(0) // no results needed for a coverage
+        .setNoFields()
+        .addAggregation(AggregationBuilders.global(Searcher.AGG_TOTAL_COUNT));
+
+    aggregationParser.getAggregations(aggregationProperties, subAggregationProperties).forEach(request::addAggregation);
+
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
+    if (log.isTraceEnabled())
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().totalHits());
+
+    return new ESResponseDocumentResults(response);
+  }
+
+
+  @Override
+  public DocumentResults aggregate(String indexName, String type, Query query, Properties aggregationProperties, IdFilter idFilter) {
+    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+
+    SearchRequestBuilder request = getClient().prepareSearch(indexName)
+        .setTypes(type)
+        .setSearchType(SearchType.QUERY_THEN_FETCH) //
+        .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
+        .setFrom(0) //
+        .setSize(0) // no results needed for a coverage
+        .setNoFields()
+        .addAggregation(AggregationBuilders.global(Searcher.AGG_TOTAL_COUNT));
+
+    aggregationParser.getAggregations(aggregationProperties).forEach(request::addAggregation);
+
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
+    SearchResponse response = request.execute().actionGet();
+    log.debug("Response /{}/{}", indexName, type);
+    if (log.isTraceEnabled())
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().totalHits());
+
+    return new ESResponseDocumentResults(response);
   }
 
   @Override
@@ -79,15 +209,15 @@ public class ESSearcher implements Searcher {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
 
     RQLQuery query = new RQLQuery(rql);
-    QueryBuilder queryBuilder = query.isValid() ? query.getQueryBuilder() : QueryBuilders.matchAllQuery();
+    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch()
-            .setIndices(indexName)
-            .setTypes(type)
-            .setSearchType(DFS_QUERY_THEN_FETCH)
-            .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter))
-            .setFrom(query.getFrom())
-            .setSize(query.getSize());
+        .setIndices(indexName)
+        .setTypes(type)
+        .setSearchType(DFS_QUERY_THEN_FETCH)
+        .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter))
+        .setFrom(query.getFrom())
+        .setSize(query.getSize());
 
     if (query.hasSortBuilders())
       query.getSortBuilders().forEach(request::addSort);
@@ -99,14 +229,14 @@ public class ESSearcher implements Searcher {
     SearchResponse response = request.execute().actionGet();
     log.debug("Response /{}/{}", indexName, type);
 
-    return new SearchResponseDocumentResults(response);
+    return new ESResponseDocumentResults(response);
   }
 
   @Override
   public DocumentResults count(String indexName, String type, String rql, IdFilter idFilter) {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
     RQLQuery query = new RQLQuery(rql);
-    QueryBuilder queryBuilder = query.isValid() ? query.getQueryBuilder() : QueryBuilders.matchAllQuery();
+    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch(indexName)
         .setTypes(type)
@@ -121,7 +251,7 @@ public class ESSearcher implements Searcher {
     SearchResponse response = request.execute().actionGet();
     log.debug("Response /{}/{}", indexName, type);
 
-    return new SearchResponseDocumentResults(response);
+    return new ESResponseDocumentResults(response);
   }
 
   @Override
@@ -225,7 +355,7 @@ public class ESSearcher implements Searcher {
     SearchResponse response = request.execute().actionGet();
     log.debug("Response /{}/{}", indexName, type);
 
-    return new SearchResponseDocumentResults(response);
+    return new ESResponseDocumentResults(response);
   }
 
   @Override
@@ -262,7 +392,7 @@ public class ESSearcher implements Searcher {
     SearchResponse response = request.execute().actionGet();
     log.debug("Response /{}/{}", indexName, type);
 
-    return new SearchResponseDocumentResults(response);
+    return new ESResponseDocumentResults(response);
   }
 
   @Override
@@ -346,58 +476,29 @@ public class ESSearcher implements Searcher {
     return QueryBuilders.boolQuery().must(includedFilter).mustNot(excludedFilter);
   }
 
+  private void appendAggregations(SearchRequestBuilder requestBuilder, List<String> aggregationBuckets, Properties aggregationProperties) {
+    Map<String, Properties> subAggregations = Maps.newHashMap();
+    if (aggregationBuckets != null)
+      aggregationBuckets.forEach(field -> subAggregations.put(field, aggregationProperties));
+    aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
+    aggregationParser.getAggregations(aggregationProperties, subAggregations).forEach(requestBuilder::addAggregation);
+  }
+
+  /**
+   * Returns the default source filtering fields. A NULL signifies the whole source to be included
+   */
+  private List<String> getSourceFields(Query query, List<String> mandatorySourceFields) {
+    List<String> sourceFields = query.getSourceFields();
+
+    if (sourceFields != null && !sourceFields.isEmpty()) {
+      sourceFields.addAll(mandatorySourceFields);
+    }
+
+    return sourceFields;
+  }
+
   private Client getClient() {
     return esSearchService.getClient();
-  }
-
-  private static class SearchResponseDocumentResults implements DocumentResults {
-    private final SearchResponse response;
-
-    public SearchResponseDocumentResults(SearchResponse response) {
-      this.response = response;
-    }
-
-    @Override
-    public long getTotal() {
-      return response.getHits().getTotalHits();
-    }
-
-    @Override
-    public List<DocumentResult> getDocuments() {
-      return StreamSupport.stream(response.getHits().spliterator(), false)
-          .map(SearchHitDocumentResult::new)
-          .collect(Collectors.toList());
-    }
-
-    @Override
-    public Map<String, Long> getAggregation(String field) {
-      Terms aggregation = response.getAggregations().get(field);
-      return aggregation.getBuckets().stream().collect(Collectors.toMap(MultiBucketsAggregation.Bucket::getKeyAsString, MultiBucketsAggregation.Bucket::getDocCount));
-    }
-  }
-
-  private static class SearchHitDocumentResult implements DocumentResult {
-    private final SearchHit hit;
-
-    private SearchHitDocumentResult(SearchHit hit) {
-      this.hit = hit;
-    }
-
-    @Override
-    public String getId() {
-      return hit.getId();
-    }
-
-    @Override
-    public InputStream getSourceInputStream() {
-      return new ByteArrayInputStream(hit.getSourceAsString().getBytes());
-    }
-
-    @Override
-    public String getClassName() {
-      Object className = hit.getSource().get("className");
-      return className == null ? null : className.toString();
-    }
   }
 
 }

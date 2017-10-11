@@ -8,7 +8,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.obiba.es.mica.rql;
+package org.obiba.es.mica.query;
 
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.junit.Test;
@@ -150,7 +150,7 @@ public class RQLQueryTest {
         "  \"bool\" : {\n" +
         "    \"should\" : [ {\n" +
         "      \"terms\" : {\n" +
-        "        \"attributes.Mlstr_area__Lifestyle_behaviours.und\" : [ [ \"Phys_act\", \"Tobacco\" ] ]\n" +
+        "        \"attributes.Mlstr_area__Lifestyle_behaviours.und\" : [ \"Phys_act\", \"Tobacco\" ]\n" +
         "      }\n" +
         "    }, {\n" +
         "      \"terms\" : {\n" +

@@ -8,7 +8,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.obiba.es.mica.rql;
+package org.obiba.es.mica.query;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -21,7 +21,7 @@ import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
-import org.obiba.mica.spi.search.support.Query;
+import org.obiba.es.mica.ESQuery;
 import org.obiba.mica.spi.search.rql.RQLFieldResolver;
 import org.obiba.mica.spi.search.rql.RQLNode;
 import org.obiba.mica.spi.search.support.AttributeKey;
@@ -33,31 +33,33 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class RQLQuery implements Query {
+public class RQLQuery implements ESQuery {
 
   private final RQLFieldResolver rqlFieldResolver;
 
-  private int from = DEFAULT_FROM;
+  private int from = 0;
 
-  private int size = DEFAULT_SIZE;
+  private int size = 0;
+
+  private boolean withLimit = false;
 
   private ASTNode node;
 
   private QueryBuilder queryBuilder;
 
-  private List<SortBuilder> sortBuilders;
+  private List<SortBuilder> sortBuilders = Lists.newArrayList();
 
   private List<String> aggregations = Lists.newArrayList();
 
   private List<String> aggregationBuckets = Lists.newArrayList();
 
-  private List<String> sourceFields = null;
+  private List<String> sourceFields = Lists.newArrayList();
 
   private final Map<String, Map<String, List<String>>> taxonomyTermsMap = Maps.newHashMap();
 
   public RQLQuery(String rql) {
     this(new RQLParser(new RQLConverter()).parse(rql), new RQLFieldResolver(null, Collections.emptyList(), "en",
-        null ));
+        null));
   }
 
   public RQLQuery(ASTNode node, RQLFieldResolver rqlFieldResolver) {
@@ -66,8 +68,14 @@ public class RQLQuery implements Query {
   }
 
   @Override
-  public boolean isValid() {
-    return queryBuilder != null;
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
+  public boolean hasIdCriteria() {
+    // TODO
+    return false;
   }
 
   @Override
@@ -81,6 +89,11 @@ public class RQLQuery implements Query {
   }
 
   @Override
+  public boolean hasLimit() {
+    return withLimit;
+  }
+
+  @Override
   public List<String> getSourceFields() {
     return sourceFields;
   }
@@ -88,6 +101,13 @@ public class RQLQuery implements Query {
   @Override
   public List<String> getAggregationBuckets() {
     return aggregationBuckets;
+  }
+
+  @Override
+  public void ensureAggregationBuckets(List<String> additionalAggregationBuckets) {
+    for (String agg : additionalAggregationBuckets) {
+      if (!aggregationBuckets.contains(agg)) aggregationBuckets.add(agg);
+    }
   }
 
   @Nullable
@@ -101,18 +121,22 @@ public class RQLQuery implements Query {
     return taxonomyTermsMap;
   }
 
+  @Override
   public boolean hasQueryBuilder() {
     return queryBuilder != null;
   }
 
+  @Override
   public QueryBuilder getQueryBuilder() {
     return queryBuilder;
   }
 
+  @Override
   public boolean hasSortBuilders() {
     return sortBuilders != null && !sortBuilders.isEmpty();
   }
 
+  @Override
   public List<SortBuilder> getSortBuilders() {
     return sortBuilders;
   }
@@ -129,7 +153,7 @@ public class RQLQuery implements Query {
   private void parseNode(ASTNode node) {
     try {
       RQLNode type = RQLNode.getType(node.getName());
-      switch(type) {
+      switch (type) {
         case VARIABLE:
         case DATASET:
         case STUDY:
@@ -157,7 +181,7 @@ public class RQLQuery implements Query {
         default:
           parseQuery(node);
       }
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
 
     }
   }
@@ -172,7 +196,8 @@ public class RQLQuery implements Query {
     this.node = node;
     RQLLimitBuilder limit = new RQLLimitBuilder();
     boolean result = node.accept(limit);
-    if(result) {
+    if (result) {
+      withLimit = true;
       from = limit.getFrom();
       size = limit.getSize();
     }
@@ -187,7 +212,7 @@ public class RQLQuery implements Query {
   private void parseAggregate(ASTNode node) {
     this.node = node;
     RQLAggregateBuilder aggregate = new RQLAggregateBuilder(rqlFieldResolver);
-    if(node.accept(aggregate)) {
+    if (node.accept(aggregate)) {
       aggregations = aggregate.getAggregations();
       aggregationBuckets = aggregate.getAggregationBuckets();
     }
@@ -197,7 +222,7 @@ public class RQLQuery implements Query {
     sourceFields = Lists.newArrayList();
 
     if (node.getArgumentsSize() > 0) {
-      if(node.getArgument(0) instanceof ArrayList) {
+      if (node.getArgument(0) instanceof ArrayList) {
         ArrayList<Object> fields = (ArrayList<Object>) node.getArgument(0);
         fields.stream().map(Object::toString).forEach(sourceFields::add);
 
@@ -230,10 +255,10 @@ public class RQLQuery implements Query {
     protected Vocabulary getVocabulary(String taxonomyName, String vocabularyName) {
       Optional<Taxonomy> taxonomy = rqlFieldResolver.getTaxonomies().stream()
           .filter(t -> t.getName().equals(taxonomyName)).findFirst();
-      if(taxonomy.isPresent() && taxonomy.get().hasVocabularies()) {
+      if (taxonomy.isPresent() && taxonomy.get().hasVocabularies()) {
         Optional<Vocabulary> vocabulary = taxonomy.get().getVocabularies().stream()
             .filter(v -> v.getName().equals(vocabularyName)).findFirst();
-        if(vocabulary.isPresent()) {
+        if (vocabulary.isPresent()) {
           return vocabulary.get();
         }
       }
@@ -251,7 +276,7 @@ public class RQLQuery implements Query {
     public QueryBuilder visit(ASTNode node) {
       try {
         RQLNode type = RQLNode.getType(node.getName());
-        switch(type) {
+        switch (type) {
           case AND:
             return visitAnd(node);
           case NAND:
@@ -292,7 +317,7 @@ public class RQLQuery implements Query {
             return visitQuery(node);
           default:
         }
-      } catch(IllegalArgumentException e) {
+      } catch (IllegalArgumentException e) {
         // ignore
       }
       return null;
@@ -300,7 +325,7 @@ public class RQLQuery implements Query {
 
     private QueryBuilder visitAnd(ASTNode node) {
       BoolQueryBuilder builder = QueryBuilders.boolQuery();
-      for (int i=0; i<node.getArgumentsSize(); i++) {
+      for (int i = 0; i < node.getArgumentsSize(); i++) {
         builder.must(visit((ASTNode) node.getArgument(i)));
       }
       return builder;
@@ -312,7 +337,7 @@ public class RQLQuery implements Query {
 
     private QueryBuilder visitOr(ASTNode node) {
       BoolQueryBuilder builder = QueryBuilders.boolQuery();
-      for (int i=0; i<node.getArgumentsSize(); i++) {
+      for (int i = 0; i < node.getArgumentsSize(); i++) {
         builder.should(visit((ASTNode) node.getArgument(i)));
       }
       return builder;
@@ -342,14 +367,18 @@ public class RQLQuery implements Query {
     private QueryBuilder visitIn(ASTNode node) {
       RQLFieldResolver.FieldData data = resolveField(node.getArgument(0).toString());
       String field = data.getField();
-      if(data.isRange()) {
+      if (data.isRange()) {
         return visitInRangeInternal(data, node.getArgument(1));
       }
 
       Object terms = node.getArgument(1);
       visitField(field, terms instanceof Collection ? ((Collection<Object>) terms).stream().map(Object::toString)
           .collect(Collectors.toList()) : Collections.singleton(terms.toString()));
-      return QueryBuilders.termsQuery(field, terms instanceof Collection ? (Collection) terms : terms);
+      if (terms instanceof Collection) {
+        Collection termList = (Collection<?>) terms;
+        return QueryBuilders.termsQuery(field, termList);
+      }
+      return QueryBuilders.termsQuery(field, terms);
     }
 
     private QueryBuilder visitInRangeInternal(RQLFieldResolver.FieldData data, Object rangesArgument) {
@@ -360,14 +389,14 @@ public class RQLQuery implements Query {
       ranges.forEach(range -> {
         RangeQueryBuilder builder = QueryBuilders.rangeQuery(data.getField());
         String[] values = range.split(":");
-        if(values.length < 2) {
+        if (values.length < 2) {
           throw new IllegalArgumentException("Invalid range format: " + range);
         }
 
         if (!"*".equals(values[0]) || !"*".equals(values[1])) {
-          if("*".equals(values[0])) {
+          if ("*".equals(values[0])) {
             builder.lt(Double.valueOf(values[1]));
-          } else if("*".equals(values[1])) {
+          } else if ("*".equals(values[1])) {
             builder.gte(Double.valueOf(values[0]));
           } else {
             builder.gte(Double.valueOf(values[0]));
@@ -384,8 +413,11 @@ public class RQLQuery implements Query {
     private QueryBuilder visitOut(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object terms = node.getArgument(1);
-      return QueryBuilders.boolQuery()
-          .mustNot(QueryBuilders.termsQuery(field, terms instanceof Collection ? (Collection) terms : terms));
+      if (terms instanceof Collection) {
+        Collection termList = (Collection) terms;
+        return QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery(field, termList));
+      }
+      return QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery(field, terms));
     }
 
     private QueryBuilder visitNot(ASTNode node) {
@@ -436,12 +468,12 @@ public class RQLQuery implements Query {
     }
 
     private QueryBuilder visitMatch(ASTNode node) {
-      if(node.getArgumentsSize() == 0) return QueryBuilders.matchAllQuery();
+      if (node.getArgumentsSize() == 0) return QueryBuilders.matchAllQuery();
       String stringQuery = toStringQuery(node.getArgument(0), " OR ");
       // if there is only one argument, the fields to be matched are the default ones
       // otherwise, the following argument can be the field name or a list of field names
       QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(stringQuery);
-      if(node.getArgumentsSize() > 1) {
+      if (node.getArgumentsSize() > 1) {
         if (node.getArgument(1) instanceof List) {
           List<Object> fields = (List<Object>) node.getArgument(1);
           fields.stream().map(Object::toString).forEach(f -> builder.field(resolveField(f).getField()));
@@ -481,24 +513,24 @@ public class RQLQuery implements Query {
     }
 
     private void visitField(String field, Collection<String> terms) {
-      if(!isAttributeField(field)) return;
+      if (!isAttributeField(field)) return;
       AttributeKey key = AttributeKey.from(field.replaceAll("^attributes\\.", "").replaceAll("\\.und$", ""));
-      if(!key.hasNamespace()) return;
+      if (!key.hasNamespace()) return;
 
-      if(!taxonomyTermsMap.containsKey(key.getNamespace())) {
+      if (!taxonomyTermsMap.containsKey(key.getNamespace())) {
         taxonomyTermsMap.put(key.getNamespace(), Maps.newHashMap());
       }
       Map<String, List<String>> vocMap = taxonomyTermsMap.get(key.getNamespace());
-      if(!vocMap.containsKey(key.getName())) {
+      if (!vocMap.containsKey(key.getName())) {
         vocMap.put(key.getName(), Lists.newArrayList());
       }
 
-      if(terms != null) {
+      if (terms != null) {
         vocMap.get(key.getName()).addAll(terms);
       } else {
         // add all terms from taxonomy vocabulary
         Vocabulary vocabulary = getVocabulary(key.getNamespace(), key.getName());
-        if(vocabulary != null && vocabulary.hasTerms()) {
+        if (vocabulary != null && vocabulary.hasTerms()) {
           vocMap.get(key.getName())
               .addAll(vocabulary.getTerms().stream().map(TaxonomyEntity::getName).collect(Collectors.toList()));
         }
@@ -507,7 +539,7 @@ public class RQLQuery implements Query {
 
     private String toStringQuery(Object argument, String joiner) {
       String stringQuery;
-      if(argument instanceof Collection) {
+      if (argument instanceof Collection) {
         Collection<Object> terms = (Collection<Object>) argument;
         stringQuery = Joiner.on(joiner).join(terms);
       } else {
@@ -538,14 +570,14 @@ public class RQLQuery implements Query {
     public Boolean visit(ASTNode node) {
       try {
         RQLNode type = RQLNode.getType(node.getName());
-        switch(type) {
+        switch (type) {
           case LIMIT:
             from = (Integer) node.getArgument(0);
-            if(node.getArgumentsSize() > 1) size = (Integer) node.getArgument(1);
+            if (node.getArgumentsSize() > 1) size = (Integer) node.getArgument(1);
             return Boolean.TRUE;
           default:
         }
-      } catch(IllegalArgumentException e) {
+      } catch (IllegalArgumentException e) {
         // ignore
       }
       return Boolean.FALSE;
@@ -561,26 +593,26 @@ public class RQLQuery implements Query {
     public List<SortBuilder> visit(ASTNode node) {
       try {
         RQLNode type = RQLNode.getType(node.getName());
-        switch(type) {
+        switch (type) {
           case SORT:
             List<SortBuilder> sortBuilders = Lists.newArrayList();
             if (node.getArgumentsSize() >= 1) {
-              for(int i = 0; i < node.getArgumentsSize(); i++) {
+              for (int i = 0; i < node.getArgumentsSize(); i++) {
                 sortBuilders.add(processArgument(node.getArgument(i).toString()));
               }
             }
             return sortBuilders;
         }
-      } catch(IllegalArgumentException e) {
+      } catch (IllegalArgumentException e) {
         // ignore
       }
       return null;
     }
 
     private SortBuilder processArgument(String arg) {
-      if(arg.startsWith("-"))
+      if (arg.startsWith("-"))
         return SortBuilders.fieldSort(resolveFieldUnanalyzed(arg.substring(1)).getField()).order(SortOrder.DESC);
-      else if(arg.startsWith("+"))
+      else if (arg.startsWith("+"))
         return SortBuilders.fieldSort(resolveFieldUnanalyzed(arg.substring(1)).getField()).order(SortOrder.ASC);
       else return SortBuilders.fieldSort(resolveFieldUnanalyzed(arg).getField()).order(SortOrder.ASC);
     }
@@ -608,9 +640,9 @@ public class RQLQuery implements Query {
     public Boolean visit(ASTNode node) {
       try {
         RQLNode type = RQLNode.getType(node.getName());
-        switch(type) {
+        switch (type) {
           case AGGREGATE:
-            if(node.getArgumentsSize() == 0) return Boolean.TRUE;
+            if (node.getArgumentsSize() == 0) return Boolean.TRUE;
             node.getArguments().stream().filter(a -> a instanceof String).map(Object::toString)
                 .forEach(aggregations::add);
             node.getArguments().stream().filter(a -> a instanceof ASTNode).map(a -> (ASTNode) a)
@@ -627,7 +659,7 @@ public class RQLQuery implements Query {
             return Boolean.TRUE;
           default:
         }
-      } catch(IllegalArgumentException e) {
+      } catch (IllegalArgumentException e) {
         // ignore
       }
       return Boolean.FALSE;
