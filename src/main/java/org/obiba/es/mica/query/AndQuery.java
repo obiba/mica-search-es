@@ -89,6 +89,11 @@ public class AndQuery implements ESQuery {
   }
 
   @Override
+  public List<String> getQueryAggregationBuckets() {
+    return Lists.newArrayList();
+  }
+
+  @Override
   public void ensureAggregationBuckets(List<String> additionalAggregationBuckets) {
     throw new UnsupportedOperationException();
   }
