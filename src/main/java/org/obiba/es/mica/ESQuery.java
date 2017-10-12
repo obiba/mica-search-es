@@ -20,8 +20,6 @@ public interface ESQuery extends Query {
 
   boolean hasLimit();
 
-  boolean hasQueryBuilder();
-
   QueryBuilder getQueryBuilder();
 
   boolean hasSortBuilders();
