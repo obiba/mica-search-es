@@ -22,6 +22,7 @@ import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.obiba.es.mica.ESQuery;
+import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.rql.RQLFieldResolver;
 import org.obiba.mica.spi.search.rql.RQLNode;
 import org.obiba.mica.spi.search.support.AttributeKey;
@@ -58,6 +59,8 @@ public class RQLQuery implements ESQuery {
   private List<String> sourceFields = Lists.newArrayList();
 
   private final Map<String, Map<String, List<String>>> taxonomyTermsMap = Maps.newHashMap();
+
+  private QueryBuilder fullTextMatchQuery;
 
   public RQLQuery(String rql) {
     this(new RQLParser(new RQLConverter()).parse(rql), new RQLFieldResolver(null, Collections.emptyList(), "en",
@@ -167,7 +170,7 @@ public class RQLQuery implements ESQuery {
         case STUDY:
         case NETWORK:
         case GENERIC:
-          node.getArguments().stream().map(a -> (ASTNode) a).forEach(n -> {
+         node.getArguments().stream().map(a -> (ASTNode) a).forEach(n -> {
             switch (RQLNode.valueOf(n.getName().toUpperCase())) {
               case LIMIT:
                 parseLimit(n);
@@ -181,10 +184,19 @@ public class RQLQuery implements ESQuery {
               case FIELDS:
                 parseFields(n);
                 break;
+              case MATCH:
+                if (n.getArgumentsSize() == 1) {
+                  parseFullTextMatch(n);
+                } else {
+                  parseQuery(n);
+                }
+                break;
               default:
                 parseQuery(n);
             }
           });
+
+          addFullTextMatchQueryIfPresent();
           break;
         default:
           parseQuery(node);
@@ -198,6 +210,11 @@ public class RQLQuery implements ESQuery {
     this.node = node;
     RQLQueryBuilder builder = new RQLQueryBuilder(rqlFieldResolver);
     queryBuilder = node.accept(builder);
+  }
+
+  private void parseFullTextMatch(ASTNode node) {
+    RQLQueryBuilder builder = new RQLQueryBuilder(rqlFieldResolver);
+    fullTextMatchQuery = node.accept(builder);
   }
 
   private void parseLimit(ASTNode node) {
@@ -237,6 +254,15 @@ public class RQLQuery implements ESQuery {
       } else {
         sourceFields.add(node.getArgument(0).toString());
       }
+    }
+  }
+
+  private void addFullTextMatchQueryIfPresent() {
+    if (fullTextMatchQuery != null) {
+      queryBuilder = queryBuilder == null
+          ? fullTextMatchQuery
+          : QueryBuilders.boolQuery().must(fullTextMatchQuery).must(queryBuilder);
+      fullTextMatchQuery = null;
     }
   }
 
@@ -481,12 +507,19 @@ public class RQLQuery implements ESQuery {
       // if there is only one argument, the fields to be matched are the default ones
       // otherwise, the following argument can be the field name or a list of field names
       QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(stringQuery);
+
       if (node.getArgumentsSize() > 1) {
         if (node.getArgument(1) instanceof List) {
           List<Object> fields = (List<Object>) node.getArgument(1);
           fields.stream().map(Object::toString).forEach(f -> builder.field(resolveField(f).getField()));
         } else {
           builder.field(resolveField(node.getArgument(1).toString()).getField());
+        }
+      } else if (node.getArgumentsSize() == 1) {
+        // make sure that it's a full text search but add more weight to the analyzed fields
+        builder.field("_all");
+        for(String analyzedField : Indexer.ANALYZED_FIELDS) {
+          builder.field(resolveField(analyzedField).getField(), 2F);
         }
       }
       return builder;

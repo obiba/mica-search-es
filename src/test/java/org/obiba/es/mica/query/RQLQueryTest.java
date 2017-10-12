@@ -237,7 +237,8 @@ public class RQLQueryTest {
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
         "  \"query_string\" : {\n" +
-        "    \"query\" : \"tutu\"\n" +
+        "    \"query\" : \"tutu\",\n" +
+        "    \"fields\" : [ \"_all\", \"name^2.0\" ]\n" +
         "  }\n" +
         "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
@@ -285,7 +286,8 @@ public class RQLQueryTest {
         "  \"bool\" : {\n" +
         "    \"must_not\" : {\n" +
         "      \"query_string\" : {\n" +
-        "        \"query\" : \"tutu\"\n" +
+        "        \"query\" : \"tutu\",\n" +
+        "        \"fields\" : [ \"_all\", \"name^2.0\" ]\n" +
         "      }\n" +
         "    }\n" +
         "  }\n" +
@@ -353,7 +355,8 @@ public class RQLQueryTest {
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
         "  \"query_string\" : {\n" +
-        "    \"query\" : \"name:tutu description:tata pwel\"\n" +
+        "    \"query\" : \"name:tutu description:tata pwel\",\n" +
+        "    \"fields\" : [ \"_all\", \"name^2.0\" ]\n" +
         "  }\n" +
         "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
