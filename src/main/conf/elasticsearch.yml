@@ -12,13 +12,16 @@ index:
                type: custom
                char_filter: [html_strip]
                tokenizer: standard
-               filter: [standard,lowercase,mica_nGram_filter]
+               filter: [standard,lowercase,mica_asciifolding_filter,mica_nGram_filter]
             mica_search_analyzer:
                type: custom
                char_filter: [html_strip]
                tokenizer: standard
-               filter: [standard,lowercase]
+               filter: [standard,lowercase,mica_asciifolding_filter]
         filter:
+            mica_asciifolding_filter:
+                type: asciifolding
+                preserve_original: true
             mica_nGram_filter:
                 type: nGram
                 min_gram: 2
