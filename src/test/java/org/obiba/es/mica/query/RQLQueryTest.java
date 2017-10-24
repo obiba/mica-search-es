@@ -238,7 +238,7 @@ public class RQLQueryTest {
     String expected = "{\n" +
         "  \"query_string\" : {\n" +
         "    \"query\" : \"tutu\",\n" +
-        "    \"fields\" : [ \"_all\", \"name^2.0\" ]\n" +
+        "    \"fields\" : [ \"_all\", \"name^5.0\" ]\n" +
         "  }\n" +
         "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
@@ -287,7 +287,7 @@ public class RQLQueryTest {
         "    \"must_not\" : {\n" +
         "      \"query_string\" : {\n" +
         "        \"query\" : \"tutu\",\n" +
-        "        \"fields\" : [ \"_all\", \"name^2.0\" ]\n" +
+        "        \"fields\" : [ \"_all\", \"name^5.0\" ]\n" +
         "      }\n" +
         "    }\n" +
         "  }\n" +
@@ -356,7 +356,7 @@ public class RQLQueryTest {
     String expected = "{\n" +
         "  \"query_string\" : {\n" +
         "    \"query\" : \"name:tutu description:tata pwel\",\n" +
-        "    \"fields\" : [ \"_all\", \"name^2.0\" ]\n" +
+        "    \"fields\" : [ \"_all\", \"name^5.0\" ]\n" +
         "  }\n" +
         "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
