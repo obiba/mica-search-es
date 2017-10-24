@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.stream.Collectors.toList;
+
 public class RQLJoinQuery implements JoinQuery {
 
   private final ConfigurationProvider configurationProvider;
@@ -61,9 +63,12 @@ public class RQLJoinQuery implements JoinQuery {
     node = parser.parse(rqlStr);
     initializeLocale(node);
 
-    if (Strings.isNullOrEmpty(node.getName()))
-      node.getArguments().stream().filter(a -> a instanceof ASTNode).map(a -> (ASTNode) a).forEach(this::initialize);
-    else initialize(node);
+    if (Strings.isNullOrEmpty(node.getName())) {
+      List<ASTNode> mainNodes = node.getArguments().stream().filter(a -> a instanceof ASTNode).map(a -> (ASTNode) a).collect(toList());
+      if (!containsVariableNode(mainNodes))
+        mainNodes.add(new ASTNode("variable"));
+      mainNodes.forEach(this::initialize);
+    } else initialize(node);
 
     // make sure we have initialize everyone
     if (variableQuery == null) {
@@ -78,6 +83,11 @@ public class RQLJoinQuery implements JoinQuery {
     if (networkQuery == null) {
       networkQuery = new EmptyQuery();
     }
+  }
+
+  private boolean containsVariableNode(List<ASTNode> mainNodes) {
+    return mainNodes.stream()
+            .anyMatch(node -> "variable".equals(node.getName()));
   }
 
   @Override
