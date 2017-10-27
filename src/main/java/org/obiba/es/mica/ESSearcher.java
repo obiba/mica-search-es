@@ -406,7 +406,7 @@ public class ESSearcher implements Searcher {
         .setQuery(builder)
         .setFrom(0) //
         .setSize(0)
-        .addAggregation(AggregationBuilders.terms(field.replaceAll("\\.", "-")).field(field));
+        .addAggregation(AggregationBuilders.terms(field.replaceAll("\\.", "-")).field(field).size(0));
 
     try {
       log.debug("Request /{}/{}: {}", indexName, type, request);
