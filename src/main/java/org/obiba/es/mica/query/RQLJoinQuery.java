@@ -57,6 +57,14 @@ public class RQLJoinQuery implements JoinQuery {
     this.indexer = indexer;
   }
 
+  @Override
+  public boolean searchOnNetworksOnly() {
+    return networkQuery.hasQueryBuilder()
+            && !studyQuery.hasQueryBuilder()
+            && !datasetQuery.hasQueryBuilder()
+            && !variableQuery.hasQueryBuilder();
+  }
+
   public void initialize(String rql) {
     String rqlStr = rql == null ? "" : rql;
     RQLParser parser = new RQLParser(new RQLConverter());
