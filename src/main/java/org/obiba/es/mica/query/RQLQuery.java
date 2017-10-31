@@ -18,6 +18,7 @@ import net.jazdw.rql.parser.ASTNode;
 import net.jazdw.rql.parser.RQLParser;
 import net.jazdw.rql.parser.SimpleASTVisitor;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -639,7 +640,10 @@ public class RQLQuery implements ESQuery {
             List<SortBuilder> sortBuilders = Lists.newArrayList();
             if (node.getArgumentsSize() >= 1) {
               for (int i = 0; i < node.getArgumentsSize(); i++) {
-                sortBuilders.add(processArgument(node.getArgument(i).toString()));
+                SortBuilder sortBuilder = processArgument(node.getArgument(i).toString());
+                ((FieldSortBuilder) sortBuilder).unmappedType("string");
+                sortBuilder.missing("_last");
+                sortBuilders.add(sortBuilder);
               }
             }
             return sortBuilders;
