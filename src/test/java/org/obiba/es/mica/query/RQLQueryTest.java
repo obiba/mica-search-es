@@ -446,6 +446,14 @@ public class RQLQueryTest {
     assertThat(rqlQuery.getFrom()).isEqualTo(3);
     assertThat(rqlQuery.getSize()).isEqualTo(4);
     assertThat(rqlQuery.getSortBuilders().size()).isEqualTo(1);
+    // TODO uncomment when elasticsearch 2.4.7 is available. Issue: https://github.com/elastic/elasticsearch/issues/20853, fix: https://github.com/elastic/elasticsearch/pull/26526
+    /*String expectedSort = "\n" +
+        "\"name\"{\n" +
+        "  \"order\" : \"desc\",\n" +
+        "  \"missing\" : \"_last\",\n" +
+        "  \"unmapped_type\" : \"string\"\n" +
+        "}";
+    assertThat(rqlQuery.getSortBuilders().get(0).toString()).isEqualTo(expectedSort);*/
   }
 
   @Test
