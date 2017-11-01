@@ -40,6 +40,11 @@ case "$1" in
             cp $MICA_HOME/plugins/$OLD_PLUGIN/site.properties $MICA_HOME/plugins/$NEW_PLUGIN/
           fi
 
+          if [ ! -z "$OLD_PLUGIN" ] && [ -f $MICA_HOME/plugins/$OLD_PLUGIN/elasticsearch.yml ]; then
+            echo "Copying $OLD_PLUGIN/elasticsearch.yml to new installation."
+            cp $MICA_HOME/plugins/$OLD_PLUGIN/elasticsearch.yml $MICA_HOME/plugins/$NEW_PLUGIN/
+          fi
+
           chown -R mica:adm $MICA_HOME/plugins/$NEW_PLUGIN
           echo '***'
           echo '*** IMPORTANT: Mica Search ES plugin has been installed, you must restart Mica server.'
