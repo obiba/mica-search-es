@@ -69,7 +69,7 @@ public class ESSearcher implements Searcher {
   
   @Override
   public JoinQuery makeJoinQuery(String rql) {
-    log.info("makeJoinQuery: {}", rql);
+    log.debug("makeJoinQuery: {}", rql);
     RQLJoinQuery joinQuery = new RQLJoinQuery(esSearchService.getConfigurationProvider(), esSearchService.getIndexer());
     joinQuery.initialize(rql);
     return joinQuery;
@@ -77,7 +77,7 @@ public class ESSearcher implements Searcher {
 
   @Override
   public Query makeQuery(String rql) {
-    log.info("makeQuery: {}", rql);
+    log.debug("makeQuery: {}", rql);
     if (Strings.isNullOrEmpty(rql)) return new EmptyQuery();
     return new RQLQuery(rql);
   }
@@ -317,7 +317,7 @@ public class ESSearcher implements Searcher {
         .setTypes(type) //
         .setQuery(query);
 
-    log.info("Request /{}/{}", indexName, type);
+    log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
     SearchResponse response = request.execute().actionGet();
     log.debug("Response /{}/{}", indexName, type);
@@ -350,7 +350,7 @@ public class ESSearcher implements Searcher {
           SortBuilders.fieldSort(sort).order(order == null ? SortOrder.ASC : SortOrder.valueOf(order.toUpperCase())));
     }
 
-    log.info("Request /{}/{}", indexName, type);
+    log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
     SearchResponse response = request.execute().actionGet();
     log.debug("Response /{}/{}", indexName, type);
