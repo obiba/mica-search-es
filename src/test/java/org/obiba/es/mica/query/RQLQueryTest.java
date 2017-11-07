@@ -26,80 +26,80 @@ public class RQLQueryTest {
   @Test
   public void test_rql_query_query_string() throws IOException {
     String rql
-        = "variable(query(paino+nature:CATEGORICAL))";
+            = "variable(query(paino+nature:CATEGORICAL))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query_string\" : {\n" +
-        "    \"query\" : \"paino nature:CATEGORICAL\"\n" +
-        "  }\n" +
-        "}";
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"paino nature:CATEGORICAL\"\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_query_string_with_parenthesis() throws IOException {
     String rql
-        = "variable(query(paino+AND+(nature:CATEGORICAL+OR+nature:CONTINUOUS)))";
+            = "variable(query(paino+AND+(nature:CATEGORICAL+OR+nature:CONTINUOUS)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query_string\" : {\n" +
-        "    \"query\" : \"paino AND (nature:CATEGORICAL OR nature:CONTINUOUS)\"\n" +
-        "  }\n" +
-        "}";
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"paino AND (nature:CATEGORICAL OR nature:CONTINUOUS)\"\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_many_and_args() throws IOException {
     String rql
-        = "variable(and(eq(datasetId,ds1),eq(studyId,std1),eq(variableType,Dataschema)))";
+            = "variable(and(eq(datasetId,ds1),eq(studyId,std1),eq(variableType,Dataschema)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must\" : [ {\n" +
-        "      \"term\" : {\n" +
-        "        \"datasetId\" : \"ds1\"\n" +
-        "      }\n" +
-        "    }, {\n" +
-        "      \"term\" : {\n" +
-        "        \"studyId\" : \"std1\"\n" +
-        "      }\n" +
-        "    }, {\n" +
-        "      \"term\" : {\n" +
-        "        \"variableType\" : \"Dataschema\"\n" +
-        "      }\n" +
-        "    } ]\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must\" : [ {\n" +
+            "      \"term\" : {\n" +
+            "        \"datasetId\" : \"ds1\"\n" +
+            "      }\n" +
+            "    }, {\n" +
+            "      \"term\" : {\n" +
+            "        \"studyId\" : \"std1\"\n" +
+            "      }\n" +
+            "    }, {\n" +
+            "      \"term\" : {\n" +
+            "        \"variableType\" : \"Dataschema\"\n" +
+            "      }\n" +
+            "    } ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_many_or_args() throws IOException {
     String rql
-        = "variable(or(eq(datasetId,ds1),eq(studyId,std1),eq(variableType,Dataschema)))";
+            = "variable(or(eq(datasetId,ds1),eq(studyId,std1),eq(variableType,Dataschema)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"should\" : [ {\n" +
-        "      \"term\" : {\n" +
-        "        \"datasetId\" : \"ds1\"\n" +
-        "      }\n" +
-        "    }, {\n" +
-        "      \"term\" : {\n" +
-        "        \"studyId\" : \"std1\"\n" +
-        "      }\n" +
-        "    }, {\n" +
-        "      \"term\" : {\n" +
-        "        \"variableType\" : \"Dataschema\"\n" +
-        "      }\n" +
-        "    } ]\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"should\" : [ {\n" +
+            "      \"term\" : {\n" +
+            "        \"datasetId\" : \"ds1\"\n" +
+            "      }\n" +
+            "    }, {\n" +
+            "      \"term\" : {\n" +
+            "        \"studyId\" : \"std1\"\n" +
+            "      }\n" +
+            "    }, {\n" +
+            "      \"term\" : {\n" +
+            "        \"variableType\" : \"Dataschema\"\n" +
+            "      }\n" +
+            "    } ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
@@ -107,94 +107,94 @@ public class RQLQueryTest {
   @Test
   public void test_rql_query_terms_contains() throws IOException {
     String rql
-        = "study(contains(Mica_study.populations-selectionCriteria-countriesIso,(CAN,USA)))";
+            = "study(contains(Mica_study.populations-selectionCriteria-countriesIso,(CAN,USA)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must\" : [ {\n" +
-        "      \"term\" : {\n" +
-        "        \"Mica_study.populations-selectionCriteria-countriesIso\" : \"CAN\"\n" +
-        "      }\n" +
-        "    }, {\n" +
-        "      \"term\" : {\n" +
-        "        \"Mica_study.populations-selectionCriteria-countriesIso\" : \"USA\"\n" +
-        "      }\n" +
-        "    } ]\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must\" : [ {\n" +
+            "      \"term\" : {\n" +
+            "        \"Mica_study.populations-selectionCriteria-countriesIso\" : \"CAN\"\n" +
+            "      }\n" +
+            "    }, {\n" +
+            "      \"term\" : {\n" +
+            "        \"Mica_study.populations-selectionCriteria-countriesIso\" : \"USA\"\n" +
+            "      }\n" +
+            "    } ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_terms_contains_default() throws IOException {
     String rql
-        = "study(contains((toto,tutu)))";
+            = "study(contains((toto,tutu)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query_string\" : {\n" +
-        "    \"query\" : \"toto AND tutu\"\n" +
-        "  }\n" +
-        "}";
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"toto AND tutu\"\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_terms_in() throws IOException {
     String rql
-        = "variable(or(in(attributes.Mlstr_area__Lifestyle_behaviours.und,(Phys_act,Tobacco)),in(attributes.Mlstr_area__Diseases.und,Neoplasms)))";
+            = "variable(or(in(attributes.Mlstr_area__Lifestyle_behaviours.und,(Phys_act,Tobacco)),in(attributes.Mlstr_area__Diseases.und,Neoplasms)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"should\" : [ {\n" +
-        "      \"terms\" : {\n" +
-        "        \"attributes.Mlstr_area__Lifestyle_behaviours.und\" : [ \"Phys_act\", \"Tobacco\" ]\n" +
-        "      }\n" +
-        "    }, {\n" +
-        "      \"terms\" : {\n" +
-        "        \"attributes.Mlstr_area__Diseases.und\" : [ \"Neoplasms\" ]\n" +
-        "      }\n" +
-        "    } ]\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"should\" : [ {\n" +
+            "      \"terms\" : {\n" +
+            "        \"attributes.Mlstr_area__Lifestyle_behaviours.und\" : [ \"Phys_act\", \"Tobacco\" ]\n" +
+            "      }\n" +
+            "    }, {\n" +
+            "      \"terms\" : {\n" +
+            "        \"attributes.Mlstr_area__Diseases.und\" : [ \"Neoplasms\" ]\n" +
+            "      }\n" +
+            "    } ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_terms_out() throws IOException {
     String rql
-        = "variable(out(attributes.Mlstr_area__Diseases.und,Neoplasms))";
+            = "variable(out(attributes.Mlstr_area__Diseases.und,Neoplasms))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must_not\" : {\n" +
-        "      \"terms\" : {\n" +
-        "        \"attributes.Mlstr_area__Diseases.und\" : [ \"Neoplasms\" ]\n" +
-        "      }\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must_not\" : {\n" +
+            "      \"terms\" : {\n" +
+            "        \"attributes.Mlstr_area__Diseases.und\" : [ \"Neoplasms\" ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_terms_not_in() throws IOException {
     String rql
-        = "variable(not(in(attributes.Mlstr_area__Diseases.und,Neoplasms)))";
+            = "variable(not(in(attributes.Mlstr_area__Diseases.und,Neoplasms)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must_not\" : {\n" +
-        "      \"terms\" : {\n" +
-        "        \"attributes.Mlstr_area__Diseases.und\" : [ \"Neoplasms\" ]\n" +
-        "      }\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must_not\" : {\n" +
+            "      \"terms\" : {\n" +
+            "        \"attributes.Mlstr_area__Diseases.und\" : [ \"Neoplasms\" ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
@@ -204,191 +204,191 @@ public class RQLQueryTest {
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must\" : [ {\n" +
-        "      \"range\" : {\n" +
-        "        \"populations.selectionCriteria.ageMin\" : {\n" +
-        "          \"from\" : 50,\n" +
-        "          \"to\" : null,\n" +
-        "          \"include_lower\" : true,\n" +
-        "          \"include_upper\" : true\n" +
-        "        }\n" +
-        "      }\n" +
-        "    }, {\n" +
-        "      \"range\" : {\n" +
-        "        \"populations.selectionCriteria.ageMin\" : {\n" +
-        "          \"from\" : null,\n" +
-        "          \"to\" : 60,\n" +
-        "          \"include_lower\" : true,\n" +
-        "          \"include_upper\" : true\n" +
-        "        }\n" +
-        "      }\n" +
-        "    } ]\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must\" : [ {\n" +
+            "      \"range\" : {\n" +
+            "        \"populations.selectionCriteria.ageMin\" : {\n" +
+            "          \"from\" : 50,\n" +
+            "          \"to\" : null,\n" +
+            "          \"include_lower\" : true,\n" +
+            "          \"include_upper\" : true\n" +
+            "        }\n" +
+            "      }\n" +
+            "    }, {\n" +
+            "      \"range\" : {\n" +
+            "        \"populations.selectionCriteria.ageMin\" : {\n" +
+            "          \"from\" : null,\n" +
+            "          \"to\" : 60,\n" +
+            "          \"include_lower\" : true,\n" +
+            "          \"include_upper\" : true\n" +
+            "        }\n" +
+            "      }\n" +
+            "    } ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_match() throws IOException {
     String rql
-        = "variable(match(tutu))";
+            = "variable(match(tutu))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query_string\" : {\n" +
-        "    \"query\" : \"tutu\",\n" +
-        "    \"fields\" : [ \"_all\", \"name^5.0\" ]\n" +
-        "  }\n" +
-        "}";
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"tutu\",\n" +
+            "    \"fields\" : [ \"_all\", \"acronym^5.0\", \"name^5.0\" ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_exists() throws IOException {
     String rql
-        = "variable(exists(tutu))";
+            = "variable(exists(tutu))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"exists\" : {\n" +
-        "    \"field\" : \"tutu\"\n" +
-        "  }\n" +
-        "}";
+            "  \"exists\" : {\n" +
+            "    \"field\" : \"tutu\"\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_missing() throws IOException {
     String rql
-        = "variable(missing(tutu))";
+            = "variable(missing(tutu))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must_not\" : {\n" +
-        "      \"exists\" : {\n" +
-        "        \"field\" : \"tutu\"\n" +
-        "      }\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must_not\" : {\n" +
+            "      \"exists\" : {\n" +
+            "        \"field\" : \"tutu\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_not_match() throws IOException {
     String rql
-        = "variable(not(match(tutu)))";
+            = "variable(not(match(tutu)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must_not\" : {\n" +
-        "      \"query_string\" : {\n" +
-        "        \"query\" : \"tutu\",\n" +
-        "        \"fields\" : [ \"_all\", \"name^5.0\" ]\n" +
-        "      }\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must_not\" : {\n" +
+            "      \"query_string\" : {\n" +
+            "        \"query\" : \"tutu\",\n" +
+            "        \"fields\" : [ \"_all\", \"acronym^5.0\", \"name^5.0\" ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_nand() throws IOException {
     String rql
-        = "variable(nand(in(Mlstr_area.Lifestyle_behaviours,Alcohol),in(Mlstr_area.Diseases,Neoplasms)))";
+            = "variable(nand(in(Mlstr_area.Lifestyle_behaviours,Alcohol),in(Mlstr_area.Diseases,Neoplasms)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must_not\" : {\n" +
-        "      \"bool\" : {\n" +
-        "        \"must\" : [ {\n" +
-        "          \"terms\" : {\n" +
-        "            \"Mlstr_area.Lifestyle_behaviours\" : [ \"Alcohol\" ]\n" +
-        "          }\n" +
-        "        }, {\n" +
-        "          \"terms\" : {\n" +
-        "            \"Mlstr_area.Diseases\" : [ \"Neoplasms\" ]\n" +
-        "          }\n" +
-        "        } ]\n" +
-        "      }\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must_not\" : {\n" +
+            "      \"bool\" : {\n" +
+            "        \"must\" : [ {\n" +
+            "          \"terms\" : {\n" +
+            "            \"Mlstr_area.Lifestyle_behaviours\" : [ \"Alcohol\" ]\n" +
+            "          }\n" +
+            "        }, {\n" +
+            "          \"terms\" : {\n" +
+            "            \"Mlstr_area.Diseases\" : [ \"Neoplasms\" ]\n" +
+            "          }\n" +
+            "        } ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_nor() throws IOException {
     String rql
-        = "variable(nor(in(Mlstr_area.Lifestyle_behaviours,Alcohol),in(Mlstr_area.Diseases,Neoplasms)))";
+            = "variable(nor(in(Mlstr_area.Lifestyle_behaviours,Alcohol),in(Mlstr_area.Diseases,Neoplasms)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must_not\" : {\n" +
-        "      \"bool\" : {\n" +
-        "        \"should\" : [ {\n" +
-        "          \"terms\" : {\n" +
-        "            \"Mlstr_area.Lifestyle_behaviours\" : [ \"Alcohol\" ]\n" +
-        "          }\n" +
-        "        }, {\n" +
-        "          \"terms\" : {\n" +
-        "            \"Mlstr_area.Diseases\" : [ \"Neoplasms\" ]\n" +
-        "          }\n" +
-        "        } ]\n" +
-        "      }\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must_not\" : {\n" +
+            "      \"bool\" : {\n" +
+            "        \"should\" : [ {\n" +
+            "          \"terms\" : {\n" +
+            "            \"Mlstr_area.Lifestyle_behaviours\" : [ \"Alcohol\" ]\n" +
+            "          }\n" +
+            "        }, {\n" +
+            "          \"terms\" : {\n" +
+            "            \"Mlstr_area.Diseases\" : [ \"Neoplasms\" ]\n" +
+            "          }\n" +
+            "        } ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_complex_match() throws IOException {
     String rql
-        = "variable(match(name:tutu description:tata pwel))";
+            = "variable(match(name:tutu description:tata pwel))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query_string\" : {\n" +
-        "    \"query\" : \"name:tutu description:tata pwel\",\n" +
-        "    \"fields\" : [ \"_all\", \"name^5.0\" ]\n" +
-        "  }\n" +
-        "}";
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"name:tutu description:tata pwel\",\n" +
+            "    \"fields\" : [ \"_all\", \"acronym^5.0\", \"name^5.0\" ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_match_with_field() throws IOException {
     String rql
-        = "variable(match(tutu,name))";
+            = "variable(match(tutu,name))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query_string\" : {\n" +
-        "    \"query\" : \"tutu\",\n" +
-        "    \"fields\" : [ \"name\" ]\n" +
-        "  }\n" +
-        "}";
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"tutu\",\n" +
+            "    \"fields\" : [ \"name\" ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
   @Test
   public void test_rql_query_match_with_fields() throws IOException {
     String rql
-        = "variable(match(tutu,(name,description)))";
+            = "variable(match(tutu,(name,description)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query_string\" : {\n" +
-        "    \"query\" : \"tutu\",\n" +
-        "    \"fields\" : [ \"name\", \"description\" ]\n" +
-        "  }\n" +
-        "}";
+            "  \"query_string\" : {\n" +
+            "    \"query\" : \"tutu\",\n" +
+            "    \"fields\" : [ \"name\", \"description\" ]\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
@@ -398,15 +398,15 @@ public class RQLQueryTest {
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"range\" : {\n" +
-        "    \"populations.selectionCriteria.ageMin\" : {\n" +
-        "      \"from\" : 50,\n" +
-        "      \"to\" : 60,\n" +
-        "      \"include_lower\" : true,\n" +
-        "      \"include_upper\" : false\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"range\" : {\n" +
+            "    \"populations.selectionCriteria.ageMin\" : {\n" +
+            "      \"from\" : 50,\n" +
+            "      \"to\" : 60,\n" +
+            "      \"include_lower\" : true,\n" +
+            "      \"include_upper\" : false\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
@@ -416,19 +416,19 @@ public class RQLQueryTest {
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"bool\" : {\n" +
-        "    \"must_not\" : {\n" +
-        "      \"range\" : {\n" +
-        "        \"populations.selectionCriteria.ageMin\" : {\n" +
-        "          \"from\" : 50,\n" +
-        "          \"to\" : 60,\n" +
-        "          \"include_lower\" : true,\n" +
-        "          \"include_upper\" : false\n" +
-        "        }\n" +
-        "      }\n" +
-        "    }\n" +
-        "  }\n" +
-        "}";
+            "  \"bool\" : {\n" +
+            "    \"must_not\" : {\n" +
+            "      \"range\" : {\n" +
+            "        \"populations.selectionCriteria.ageMin\" : {\n" +
+            "          \"from\" : 50,\n" +
+            "          \"to\" : 60,\n" +
+            "          \"include_lower\" : true,\n" +
+            "          \"include_upper\" : false\n" +
+            "        }\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expected);
   }
 
@@ -438,10 +438,10 @@ public class RQLQueryTest {
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expectedQuery = "{\n" +
-        "  \"term\" : {\n" +
-        "    \"id\" : \"ialsa\"\n" +
-        "  }\n" +
-        "}";
+            "  \"term\" : {\n" +
+            "    \"id\" : \"ialsa\"\n" +
+            "  }\n" +
+            "}";
     assertThat(rqlQuery.getQueryBuilder().toString()).isEqualTo(expectedQuery);
     assertThat(rqlQuery.getFrom()).isEqualTo(3);
     assertThat(rqlQuery.getSize()).isEqualTo(4);
@@ -522,15 +522,15 @@ public class RQLQueryTest {
     assertThat(rqlQuery.getSourceFields().get(0)).isEqualTo("name.*");
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
-        "  \"query\" : {\n" +
-        "    \"exists\" : {\n" +
-        "      \"field\" : \"id\"\n" +
-        "    }\n" + "  },\n" +
-        "  \"_source\" : {\n" +
-        "    \"includes\" : [ \"name.*\" ],\n" +
-        "    \"excludes\" : [ ]\n" +
-        "  }\n"
-        + "}";
+            "  \"query\" : {\n" +
+            "    \"exists\" : {\n" +
+            "      \"field\" : \"id\"\n" +
+            "    }\n" + "  },\n" +
+            "  \"_source\" : {\n" +
+            "    \"includes\" : [ \"name.*\" ],\n" +
+            "    \"excludes\" : [ ]\n" +
+            "  }\n"
+            + "}";
 
     TestElasticSearchClient client = new TestElasticSearchClient();
     client.init();
