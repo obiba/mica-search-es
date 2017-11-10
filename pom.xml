@@ -425,7 +425,7 @@
                   <changelogFile>/usr/share/changelog</changelogFile>
                   <targetOS>Linux</targetOS>
                   <requires>
-                    <require>mica-server</require>
+                    <require>mica2 &gt;= 3.1</require>
                     <require>unzip</require>
                   </requires>
                   <postinstallScriptlet>
