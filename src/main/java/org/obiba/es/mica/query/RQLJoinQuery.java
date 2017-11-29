@@ -99,6 +99,11 @@ public class RQLJoinQuery implements JoinQuery {
   }
 
   @Override
+  public String getLocale() {
+    return locale;
+  }
+
+  @Override
   public boolean isWithFacets() {
     return withFacets;
   }
