@@ -33,6 +33,7 @@ import org.obiba.es.mica.query.RQLJoinQuery;
 import org.obiba.es.mica.query.RQLQuery;
 import org.obiba.es.mica.results.ESResponseDocumentResults;
 import org.obiba.es.mica.support.AggregationParser;
+import org.obiba.es.mica.support.ESHitSourceMapHelper;
 import org.obiba.mica.spi.search.QueryScope;
 import org.obiba.mica.spi.search.Searcher;
 import org.obiba.mica.spi.search.support.EmptyQuery;
@@ -278,12 +279,12 @@ public class ESSearcher implements Searcher {
 
     List<String> names = Lists.newArrayList();
     response.getHits().forEach(hit -> {
-          String value = ((Map<String, Object>) hit.getSource().get(defaultFieldName)).get(locale).toString().toLowerCase();
-          names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
-              .filter(str -> !str.contains("[") && !str.contains("(") && !str.contains("{") && !str.contains("]") && !str.contains(")") && !str.contains("}"))
-              .map(str -> str.replace(":", "").replace(",", ""))
-              .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
-        }
+        String value = ESHitSourceMapHelper.flattenMap(hit).get(defaultFieldName + "." + locale).toLowerCase();
+        names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
+          .filter(str -> !str.contains("[") && !str.contains("(") && !str.contains("{") && !str.contains("]") && !str.contains(")") && !str.contains("}"))
+          .map(str -> str.replace(":", "").replace(",", ""))
+          .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
+      }
     );
     return names;
   }
