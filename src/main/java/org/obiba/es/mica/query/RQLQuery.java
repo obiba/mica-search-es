@@ -519,7 +519,7 @@ public class RQLQuery implements ESQuery {
       } else if (node.getArgumentsSize() == 1) {
         // make sure that it's a full text search but add more weight to the analyzed fields
         builder.field("_all");
-        for(String analyzedField : Indexer.ANALYZED_FIELDS) {
+        for(String analyzedField : rqlFieldResolver.getAnalzedFields()) {
           builder.field(resolveField(analyzedField).getField(), 5F);
         }
       }
