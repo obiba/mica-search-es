@@ -161,6 +161,24 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
     membershipsMapping.endObject().endObject(); // memberships
   }
 
+  protected void startDynamicTemplate(XContentBuilder mapping) throws IOException {
+    mapping.startArray("dynamic_templates").startObject();
+  }
+
+  protected void dynamicTemplateExcludeFieldFromSearch(XContentBuilder mapping,
+                                                       String name,
+                                                       String pattern) throws IOException {
+    mapping.startObject(name)
+      .field("path_match", pattern)
+      .startObject("mapping").field("include_in_all", false).endObject()
+      .endObject();
+  }
+
+  protected void endDynamicTemplate(XContentBuilder mapping) throws IOException {
+    mapping.endObject().endArray();
+  }
+
+
   private void createSchemaMapping(XContentBuilder mapping, SchemaNode schema) throws IOException {
     for (SchemaNode node : schema.getChildren()) {
       if (node.getVocabulary() != null) {
