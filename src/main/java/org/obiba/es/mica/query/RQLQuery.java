@@ -185,13 +185,10 @@ public class RQLQuery implements ESQuery {
               case FIELDS:
                 parseFields(n);
                 break;
-              case MATCH:
-                if (n.getArgumentsSize() == 1) {
-                  parseFullTextMatch(n);
-                } else {
-                  parseQuery(n);
-                }
+              case DOC_MATCH:
+                parseFullTextMatch(n);
                 break;
+              case MATCH:
               default:
                 parseQuery(n);
             }
@@ -340,6 +337,8 @@ public class RQLQuery implements ESQuery {
             return visitGt(node);
           case BETWEEN:
             return visitBetween(node);
+          case DOC_MATCH:
+            return visitDocMatch(node);
           case MATCH:
             return visitMatch(node);
           case LIKE:
@@ -502,6 +501,24 @@ public class RQLQuery implements ESQuery {
       return QueryBuilders.rangeQuery(field).gte(values.get(0)).lt(values.get(1));
     }
 
+    private QueryBuilder visitDocMatch(ASTNode node) {
+      if (node.getArgumentsSize() == 0) return QueryBuilders.matchAllQuery();
+
+      String stringQuery = toStringQuery(node.getArgument(0), " OR ");
+      QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(stringQuery);
+
+      if (node.getArgumentsSize() < 2) {
+        builder.field("_all");
+        for(String analyzedField : rqlFieldResolver.getAnalzedFields()) {
+          builder.field(resolveField(analyzedField).getField(), 5F);
+        }
+      } else {
+        toResolvedFields(node.getArgument(1)).forEach(builder::field);
+      }
+
+      return builder;
+    }
+
     private QueryBuilder visitMatch(ASTNode node) {
       if (node.getArgumentsSize() == 0) return QueryBuilders.matchAllQuery();
       String stringQuery = toStringQuery(node.getArgument(0), " OR ");
@@ -509,19 +526,11 @@ public class RQLQuery implements ESQuery {
       // otherwise, the following argument can be the field name or a list of field names
       QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(stringQuery);
 
-      if (node.getArgumentsSize() > 1) {
-        if (node.getArgument(1) instanceof List) {
-          List<Object> fields = (List<Object>) node.getArgument(1);
-          fields.stream().map(Object::toString).forEach(f -> builder.field(resolveField(f).getField()));
-        } else {
-          builder.field(resolveField(node.getArgument(1).toString()).getField());
-        }
-      } else if (node.getArgumentsSize() == 1) {
-        // make sure that it's a full text search but add more weight to the analyzed fields
-        builder.field("_all");
-        for(String analyzedField : rqlFieldResolver.getAnalzedFields()) {
-          builder.field(resolveField(analyzedField).getField(), 5F);
-        }
+      if (node.getArgument(1) instanceof List) {
+        List<Object> fields = (List<Object>) node.getArgument(1);
+        fields.stream().map(Object::toString).forEach(f -> builder.field(resolveField(f).getField()));
+      } else {
+        builder.field(resolveField(node.getArgument(1).toString()).getField());
       }
       return builder;
     }
@@ -577,6 +586,21 @@ public class RQLQuery implements ESQuery {
               .addAll(vocabulary.getTerms().stream().map(TaxonomyEntity::getName).collect(Collectors.toList()));
         }
       }
+    }
+
+    private List<String> toResolvedFields(Object argument) {
+      List<String> resolvedFields = new ArrayList<>();
+
+      if (argument instanceof Collection) {
+        Collection<Object> fieldsList = (Collection<Object>) argument;
+        fieldsList
+            .forEach(filteredField -> resolvedFields.add(resolveField(filteredField.toString()).getField()));
+
+      } else {
+        resolvedFields.add(resolveField(argument.toString()).getField());
+      }
+
+      return resolvedFields;
     }
 
     private String toStringQuery(Object argument, String joiner) {
