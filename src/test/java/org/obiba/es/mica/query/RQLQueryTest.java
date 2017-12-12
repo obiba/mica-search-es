@@ -232,7 +232,7 @@ public class RQLQueryTest {
   @Test
   public void test_rql_query_match() throws IOException {
     String rql
-            = "variable(match(tutu))";
+            = "variable(doc_match(tutu))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
@@ -279,7 +279,7 @@ public class RQLQueryTest {
   @Test
   public void test_rql_query_not_match() throws IOException {
     String rql
-            = "variable(not(match(tutu)))";
+            = "variable(not(doc_match(tutu)))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
@@ -350,7 +350,7 @@ public class RQLQueryTest {
   @Test
   public void test_rql_query_complex_match() throws IOException {
     String rql
-            = "variable(match(name:tutu description:tata pwel))";
+            = "variable(doc_match(name:tutu description:tata pwel))";
     RQLQuery rqlQuery = new RQLQuery(rql);
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
     String expected = "{\n" +
