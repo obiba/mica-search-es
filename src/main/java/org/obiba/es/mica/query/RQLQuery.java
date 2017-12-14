@@ -185,11 +185,11 @@ public class RQLQuery implements ESQuery {
               case FIELDS:
                 parseFields(n);
                 break;
-              case MATCH:
-                if (n.getArgumentsSize() == 1) {
-                  parseFullTextMatch(n);
-                } else {
-                  parseQuery(n);
+              case FILTER: // for now will only have one argument RQL_NODE.MATCH
+                if (n.getArgumentsSize() > 0 && n.getArgument(0) instanceof ASTNode &&
+                    RQLNode.valueOf(((ASTNode) n.getArgument(0)).getName().toUpperCase()).equals(RQLNode.MATCH)) {
+                  Object argument = n.getArgument(0);
+                  parseFullTextMatch((ASTNode) argument);
                 }
                 break;
               default:
