@@ -310,6 +310,7 @@ public class RQLQuery implements ESQuery {
       try {
         RQLNode type = RQLNode.getType(node.getName());
         switch (type) {
+          case FILTER:
           case AND:
             return visitAnd(node);
           case NAND:
@@ -355,7 +356,6 @@ public class RQLQuery implements ESQuery {
       }
       return null;
     }
-
     private QueryBuilder visitAnd(ASTNode node) {
       BoolQueryBuilder builder = QueryBuilders.boolQuery();
       for (int i = 0; i < node.getArgumentsSize(); i++) {
