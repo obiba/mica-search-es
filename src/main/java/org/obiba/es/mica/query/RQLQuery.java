@@ -23,7 +23,6 @@ import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.obiba.es.mica.ESQuery;
-import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.rql.RQLFieldResolver;
 import org.obiba.mica.spi.search.rql.RQLNode;
 import org.obiba.mica.spi.search.support.AttributeKey;
@@ -61,7 +60,7 @@ public class RQLQuery implements ESQuery {
 
   private final Map<String, Map<String, List<String>>> taxonomyTermsMap = Maps.newHashMap();
 
-  private QueryBuilder fullTextMatchQuery;
+  private QueryBuilder filterQuery;
 
   public RQLQuery(String rql) {
     this(new RQLParser(new RQLConverter()).parse(rql), new RQLFieldResolver(null, Collections.emptyList(), "en",
@@ -185,11 +184,10 @@ public class RQLQuery implements ESQuery {
               case FIELDS:
                 parseFields(n);
                 break;
-              case FILTER: // for now will only have one argument RQL_NODE.MATCH
-                if (n.getArgumentsSize() > 0 && n.getArgument(0) instanceof ASTNode &&
-                    RQLNode.valueOf(((ASTNode) n.getArgument(0)).getName().toUpperCase()).equals(RQLNode.MATCH)) {
+              case FILTER: // for now will only have one argument
+                if (n.getArgumentsSize() > 0 && n.getArgument(0) instanceof ASTNode) {
                   Object argument = n.getArgument(0);
-                  parseFullTextMatch((ASTNode) argument);
+                  parseFilterQuery((ASTNode) argument);
                 }
                 break;
               default:
@@ -197,7 +195,7 @@ public class RQLQuery implements ESQuery {
             }
           });
 
-          addFullTextMatchQueryIfPresent();
+          addFilterQueryIfPresent();
           break;
         default:
           parseQuery(node);
@@ -213,9 +211,9 @@ public class RQLQuery implements ESQuery {
     queryBuilder = node.accept(builder);
   }
 
-  private void parseFullTextMatch(ASTNode node) {
+  private void parseFilterQuery(ASTNode node) {
     RQLQueryBuilder builder = new RQLQueryBuilder(rqlFieldResolver);
-    fullTextMatchQuery = node.accept(builder);
+    filterQuery = node.accept(builder);
   }
 
   private void parseLimit(ASTNode node) {
@@ -258,12 +256,12 @@ public class RQLQuery implements ESQuery {
     }
   }
 
-  private void addFullTextMatchQueryIfPresent() {
-    if (fullTextMatchQuery != null) {
+  private void addFilterQueryIfPresent() {
+    if (filterQuery != null) {
       queryBuilder = queryBuilder == null
-          ? fullTextMatchQuery
-          : QueryBuilders.boolQuery().must(fullTextMatchQuery).must(queryBuilder);
-      fullTextMatchQuery = null;
+          ? filterQuery
+          : QueryBuilders.boolQuery().must(filterQuery).must(queryBuilder);
+      filterQuery = null;
     }
   }
 
