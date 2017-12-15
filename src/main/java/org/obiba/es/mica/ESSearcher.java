@@ -256,11 +256,12 @@ public class ESSearcher implements Searcher {
   }
 
   @Override
-  public List<String> suggest(String indexName, String type, int limit, String locale, String queryString, String defaultFieldName) {
-    String fieldName = defaultFieldName + "." + locale;
+  public List<String> suggest(String indexName, String type, int limit, String locale, String queryString, String defaultFieldNamePattern) {
+    String localizedFieldName = String.format(defaultFieldNamePattern, locale);
+    String fieldName = localizedFieldName.replace(".analyzed", "");
 
     QueryBuilder queryExec = QueryBuilders.queryStringQuery(queryString)
-        .defaultField(fieldName + ".analyzed")
+        .defaultField(localizedFieldName)
         .defaultOperator(QueryStringQueryBuilder.Operator.OR);
 
     SearchRequestBuilder request = getClient().prepareSearch() //
@@ -279,7 +280,7 @@ public class ESSearcher implements Searcher {
 
     List<String> names = Lists.newArrayList();
     response.getHits().forEach(hit -> {
-        String value = ESHitSourceMapHelper.flattenMap(hit).get(defaultFieldName + "." + locale).toLowerCase();
+        String value = ESHitSourceMapHelper.flattenMap(hit).get(fieldName).toLowerCase();
         names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
           .filter(str -> !str.contains("[") && !str.contains("(") && !str.contains("{") && !str.contains("]") && !str.contains(")") && !str.contains("}"))
           .map(str -> str.replace(":", "").replace(",", ""))
