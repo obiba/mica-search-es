@@ -92,7 +92,7 @@ public class ESSearcher implements Searcher {
   public DocumentResults query(String indexName, String type, Query query, QueryScope scope, List<String> mandatorySourceFields, Properties aggregationProperties, @Nullable IdFilter idFilter) throws IOException {
 
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
-    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+    QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch(indexName)
         .setTypes(type)
@@ -128,7 +128,7 @@ public class ESSearcher implements Searcher {
   @Override
   public DocumentResults cover(String indexName, String type, Query query, Properties aggregationProperties, @Nullable IdFilter idFilter) {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
-    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+    QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch(indexName)
         .setTypes(type)
@@ -154,7 +154,7 @@ public class ESSearcher implements Searcher {
   @Override
   public DocumentResults cover(String indexName, String type, Query query, Properties aggregationProperties, Map<String, Properties> subAggregationProperties, @Nullable IdFilter idFilter) {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
-    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+    QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch(indexName)
         .setTypes(type)
@@ -181,7 +181,7 @@ public class ESSearcher implements Searcher {
   @Override
   public DocumentResults aggregate(String indexName, String type, Query query, Properties aggregationProperties, IdFilter idFilter) {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
-    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
+    QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch(indexName)
         .setTypes(type)
@@ -210,7 +210,7 @@ public class ESSearcher implements Searcher {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
 
     RQLQuery query = new RQLQuery(rql);
-    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
+    QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch()
         .setIndices(indexName)
@@ -237,7 +237,7 @@ public class ESSearcher implements Searcher {
   public DocumentResults count(String indexName, String type, String rql, IdFilter idFilter) {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
     RQLQuery query = new RQLQuery(rql);
-    QueryBuilder queryBuilder = query.isEmpty() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
+    QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch(indexName)
         .setTypes(type)
