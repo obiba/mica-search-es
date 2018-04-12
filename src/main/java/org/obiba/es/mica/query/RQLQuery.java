@@ -181,6 +181,7 @@ public class RQLQuery implements ESQuery {
               case AGGREGATE:
                 parseAggregate(n);
                 break;
+              case SELECT:
               case FIELDS:
                 parseFields(n);
                 break;
