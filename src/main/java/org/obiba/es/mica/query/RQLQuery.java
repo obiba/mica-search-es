@@ -249,9 +249,8 @@ public class RQLQuery implements ESQuery {
       if (node.getArgument(0) instanceof ArrayList) {
         ArrayList<Object> fields = (ArrayList<Object>) node.getArgument(0);
         fields.stream().map(Object::toString).forEach(sourceFields::add);
-
       } else {
-        sourceFields.add(node.getArgument(0).toString());
+        node.getArguments().stream().map(Object::toString).forEach(sourceFields::add);
       }
     }
   }
