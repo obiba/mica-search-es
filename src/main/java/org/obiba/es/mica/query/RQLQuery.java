@@ -319,8 +319,6 @@ public class RQLQuery implements ESQuery {
             return visitOr(node);
           case NOR:
             return visitNor(node);
-          case REGEXP:
-            return visitRegExp(node);
           case CONTAINS:
             return visitContains(node);
           case IN:
@@ -358,14 +356,6 @@ public class RQLQuery implements ESQuery {
       }
       return null;
     }
-
-    private QueryBuilder visitRegExp(ASTNode node) {
-      RQLFieldResolver.FieldData data = resolveField(node.getArgument(0).toString());
-      String field = data.getField();
-      RegexpQueryBuilder builder = QueryBuilders.regexpQuery(field,node.getArgument(1).toString());
-      return builder;
-    }
-
     private QueryBuilder visitAnd(ASTNode node) {
       BoolQueryBuilder builder = QueryBuilders.boolQuery();
       for (int i = 0; i < node.getArgumentsSize(); i++) {
