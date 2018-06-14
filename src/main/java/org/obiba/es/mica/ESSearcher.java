@@ -14,7 +14,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -44,9 +46,11 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.elasticsearch.action.search.SearchType.DFS_QUERY_THEN_FETCH;
 import static org.obiba.mica.spi.search.QueryScope.AGGREGATION;
@@ -200,59 +204,33 @@ public class ESSearcher implements Searcher {
     return new ESResponseDocumentResults(response);
   }
 
-  private SearchRequestBuilder buildRequest(String indexName, String type, String rql, IdFilter idFilter) {
+  @Override
+  public DocumentResults find(String indexName, String type, String rql, IdFilter idFilter) {
+
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
 
     RQLQuery query = new RQLQuery(rql);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
 
     SearchRequestBuilder request = getClient().prepareSearch()
-      .setIndices(indexName)
-      .setTypes(type)
-      .setSearchType(DFS_QUERY_THEN_FETCH)
-      .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter))
-      .setFrom(query.getFrom())
-      .setSize(query.getSize());
+        .setIndices(indexName)
+        .setTypes(type)
+        .setSearchType(DFS_QUERY_THEN_FETCH)
+        .setQuery(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter))
+        .setFrom(query.getFrom())
+        .setSize(query.getSize());
 
     if (query.hasSortBuilders())
       query.getSortBuilders().forEach(request::addSort);
     else
       request.addSort(SortBuilders.scoreSort().order(SortOrder.DESC));
 
-    List<String> sourceFields = getSourceFields(query, new ArrayList<>());
-    if (!sourceFields.isEmpty()) {
-      request.setFetchSource(sourceFields.toArray(new String[sourceFields.size()]), null);
-    }
-
-    return request;
-  }
-
-  @Override
-  public DocumentResults find(String indexName, String type, String rql, IdFilter idFilter) {
-    SearchRequestBuilder request = buildRequest(indexName, type, rql, idFilter);
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, request.toString());
     SearchResponse response = request.execute().actionGet();
     log.debug("Response /{}/{}", indexName, type);
 
     return new ESResponseDocumentResults(response);
-  }
-
-  @Override
-  public List<DocumentResults> mfind(String indexName, String type, List<String> rqls, IdFilter idFilter) {
-    MultiSearchRequestBuilder requests = getClient().prepareMultiSearch();
-    rqls.forEach(rql -> requests.add(buildRequest(indexName, type, rql, idFilter)));
-
-    log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, requests.toString());
-    MultiSearchResponse responses = requests.execute().actionGet();
-    log.debug("Response /{}/{}", indexName, type);
-
-    List<DocumentResults> collect = Stream.of(responses.getResponses())
-      .map(item -> new ESResponseDocumentResults(item.getResponse()))
-      .collect(Collectors.toList());
-
-    return collect;
   }
 
   @Override
