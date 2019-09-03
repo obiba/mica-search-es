@@ -497,7 +497,7 @@ public class RQLQuery implements ESQuery {
       String field = resolveField(node.getArgument(0).toString()).getField();
       visitField(field);
       ArrayList<Object> values = (ArrayList<Object>) node.getArgument(1);
-      return QueryBuilders.rangeQuery(field).gte(values.get(0)).lt(values.get(1));
+      return QueryBuilders.rangeQuery(field).gte(values.get(0)).lte(values.get(1));
     }
 
     private QueryBuilder visitMatch(ASTNode node) {
