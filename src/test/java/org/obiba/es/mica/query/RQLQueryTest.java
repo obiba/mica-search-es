@@ -403,7 +403,7 @@ public class RQLQueryTest {
             "      \"from\" : 50,\n" +
             "      \"to\" : 60,\n" +
             "      \"include_lower\" : true,\n" +
-            "      \"include_upper\" : false\n" +
+            "      \"include_upper\" : true\n" +
             "    }\n" +
             "  }\n" +
             "}";
@@ -423,7 +423,7 @@ public class RQLQueryTest {
             "          \"from\" : 50,\n" +
             "          \"to\" : 60,\n" +
             "          \"include_lower\" : true,\n" +
-            "          \"include_upper\" : false\n" +
+            "          \"include_upper\" : true\n" +
             "        }\n" +
             "      }\n" +
             "    }\n" +
