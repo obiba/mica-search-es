@@ -117,6 +117,9 @@ public class AggregationParser {
                 }
               }
             });
+            if (subAggregations != null && subAggregations.containsKey(entry.getValue())) {
+              subAggregations.get(entry.getValue()).forEach(agg -> builder.subAggregation(agg));
+            }
             termsBuilders.add(builder);
             break;
           default:
