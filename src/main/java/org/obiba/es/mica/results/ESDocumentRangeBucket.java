@@ -13,6 +13,9 @@ package org.obiba.es.mica.results;
 import org.elasticsearch.search.aggregations.bucket.range.Range;
 import org.obiba.mica.spi.search.Searcher;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * {@link Range.Bucket} aggregation wrapper.
  */
@@ -41,5 +44,10 @@ public class ESDocumentRangeBucket implements Searcher.DocumentRangeBucket {
   @Override
   public Double getTo() {
     return (Double) bucket.getTo();
+  }
+
+  @Override
+  public List<Searcher.DocumentAggregation> getAggregations() {
+    return bucket.getAggregations().asList().stream().map(ESDocumentAggregation::new).collect(Collectors.toList());
   }
 }
