@@ -11,6 +11,8 @@
 package org.obiba.es.mica.mapping;
 
 import com.google.common.collect.Lists;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -36,8 +38,9 @@ public class StudyIndexConfiguration extends AbstractIndexConfiguration {
     if (Indexer.DRAFT_STUDY_INDEX.equals(indexName) || Indexer.PUBLISHED_STUDY_INDEX.equals(indexName)) {
 
       try {
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName).setType(Indexer.STUDY_TYPE)
-            .setSource(createMappingProperties()).execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(createMappingProperties()), RequestOptions.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -45,7 +48,7 @@ public class StudyIndexConfiguration extends AbstractIndexConfiguration {
   }
 
   private XContentBuilder createMappingProperties() throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(Indexer.STUDY_TYPE);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     startDynamicTemplate(mapping);
     dynamicTemplateExcludeFieldFromSearch(mapping, "parent_id", "*Memberships.parentId");
     endDynamicTemplate(mapping);
@@ -64,7 +67,7 @@ public class StudyIndexConfiguration extends AbstractIndexConfiguration {
         "memberships.contact.person.institution.name.und"
     );
     addTaxonomyFields(mapping, taxonomy, ignore);
-    mapping.endObject();
+    mapping.endObject().endObject();
 
     return mapping;
   }

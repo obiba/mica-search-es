@@ -31,7 +31,7 @@ public class ESDocumentAggregation implements Searcher.DocumentAggregation {
 
   @Override
   public String getType() {
-    return ((InternalAggregation) aggregation).type().name();
+    return aggregation.getType();
   }
 
   @Override

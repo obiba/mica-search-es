@@ -12,7 +12,7 @@ package org.obiba.es.mica.mapping;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.obiba.es.mica.ESSearchEngineService;
@@ -27,7 +27,11 @@ import org.slf4j.LoggerFactory;
 import sun.util.locale.LanguageTag;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigurationListener {
@@ -44,7 +48,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
     this.configurationProvider = configurationProvider;
   }
 
-  protected Client getClient(SearchEngineService searchEngineService) {
+  protected RestHighLevelClient getClient(SearchEngineService searchEngineService) {
     return ((ESSearchEngineService) searchEngineService).getClient();
   }
 
@@ -88,7 +92,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
       Stream.concat(configurationProvider.getLocales().stream(), Stream.of(
           LanguageTag.UNDETERMINED)).forEach(locale -> {
         try {
-          mapping.startObject(locale).field("type", "multi_field");
+          mapping.startObject(locale);
           createMappingWithAnalyzers(mapping, locale);
           mapping.endObject();
         } catch (IOException e) {
@@ -108,7 +112,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
 
   protected void createMappingWithoutAnalyzer(XContentBuilder mapping, String name, String type) {
     try {
-      mapping.startObject(name).field("type", resolveType(type)).field("index", "not_analyzed").endObject();
+      mapping.startObject(name).field("type", resolveType(type)).endObject();
     } catch (IOException e) {
       log.error("Failed to create localized mappings: '{}'", e);
     }
@@ -116,7 +120,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
 
   protected void createMappingWithAndWithoutAnalyzer(XContentBuilder mapping, String name) {
     try {
-      mapping.startObject(name).field("type", "multi_field");
+      mapping.startObject(name);
       createMappingWithAnalyzers(mapping, name);
       mapping.endObject();
     } catch (IOException e) {
@@ -126,24 +130,19 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
 
   protected void createMappingWithAnalyzers(XContentBuilder mapping, String name) throws IOException {
     mapping
+        .field("type", "keyword")
         .startObject("fields")
         .field("analyzed")
         .startObject()
-        .field("type", "string")
-        .field("index", "analyzed")
+        .field("type", "text")
         .field("analyzer", "mica_index_analyzer")
         .field("search_analyzer", "mica_search_analyzer")
-        .endObject()
-        .field(name)
-        .startObject()
-        .field("type", "string")
-        .field("index", "not_analyzed")
         .endObject()
         .endObject();
   }
 
   protected void appendMembershipProperties(XContentBuilder mapping) throws IOException {
-    XContentBuilder membershipsMapping = mapping.startObject("memberships").startObject("properties");
+    XContentBuilder membershipsMapping = mapping.startObject("memberships1").startObject("properties");
     for (String role : configurationProvider.getRoles()) {
       XContentBuilder personMapping = membershipsMapping.startObject(role).startObject("properties") //
           .startObject("person").startObject("properties");
@@ -206,7 +205,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
       }
     }
 
-    return "string";
+    return "keyword";
   }
 
   private void insertInSchema(SchemaNode schema, List<String> path, final Vocabulary vocabulary) {
@@ -239,6 +238,8 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
           }
 
           insertInSchema(root, path, v);
+        } else {
+          log.info("LOGGING {}", fieldName);
         }
       });
 

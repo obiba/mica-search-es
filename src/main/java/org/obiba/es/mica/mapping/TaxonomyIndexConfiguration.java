@@ -10,6 +10,8 @@
 
 package org.obiba.es.mica.mapping;
 
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -33,17 +35,17 @@ public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
   public void onIndexCreated(SearchEngineService searchEngineService, String indexName) {
     if (Indexer.TAXONOMY_INDEX.equals(indexName)) {
       try {
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName) //
-            .setType(Indexer.TAXONOMY_TYPE).setSource(createTaxonomyMappingProperties()) //
-            .execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(createTaxonomyMappingProperties()), RequestOptions.DEFAULT);
 
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName) //
-            .setType(Indexer.TAXONOMY_VOCABULARY_TYPE).setSource(createVocabularyMappingProperties()) //
-            .execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(createVocabularyMappingProperties()), RequestOptions.DEFAULT);
 
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName) //
-            .setType(Indexer.TAXONOMY_TERM_TYPE).setSource(createTermMappingProperties()) //
-            .execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(createTermMappingProperties()), RequestOptions.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

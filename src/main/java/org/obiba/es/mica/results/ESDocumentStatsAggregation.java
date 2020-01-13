@@ -11,7 +11,7 @@
 package org.obiba.es.mica.results;
 
 import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.metrics.stats.Stats;
+import org.elasticsearch.search.aggregations.metrics.Stats;
 import org.obiba.mica.spi.search.Searcher;
 
 /**

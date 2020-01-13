@@ -11,13 +11,14 @@
 package org.obiba.es.mica.support;
 
 import org.assertj.core.util.Maps;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
+@Ignore
 public class ESHitSourceMapHelperTest {
 
   @Test

@@ -19,7 +19,7 @@ import java.util.Map;
 final public class ESHitSourceMapHelper {
 
   public static Map<String, String> flattenMap(SearchHit hit) {
-    Map<String, Object> source = hit.getSource();
+    Map<String, Object> source = hit.getSourceAsMap();
     Map<String, String> flattenedMap = Maps.newHashMap();
     flattenMap(source, flattenedMap, "");
     return flattenedMap;

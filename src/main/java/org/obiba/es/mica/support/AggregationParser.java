@@ -14,15 +14,24 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.range.RangeBuilder;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.aggregations.bucket.terms.TermsBuilder;
+import org.elasticsearch.search.aggregations.BucketOrder;
+import org.elasticsearch.search.aggregations.bucket.range.RangeAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.obiba.mica.spi.search.support.AggregationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -90,18 +99,18 @@ public class AggregationParser {
 
         switch (aggType) {
           case AggregationHelper.AGG_TERMS:
-            TermsBuilder termBuilder = AggregationBuilders.terms(entry.getKey()).field(entry.getValue());
+            TermsAggregationBuilder termBuilder = AggregationBuilders.terms(entry.getKey()).field(entry.getValue());
             if (minDocCount > -1) termBuilder.minDocCount(minDocCount);
             if (subAggregations != null && subAggregations.containsKey(entry.getValue())) {
               subAggregations.get(entry.getValue()).forEach(termBuilder::subAggregation);
             }
-            termsBuilders.add(termBuilder.order(Terms.Order.term(true)).size(0));
+            termsBuilders.add(termBuilder.order(BucketOrder.key(true)).size(0));
             break;
           case AggregationHelper.AGG_STATS:
             termsBuilders.add(AggregationBuilders.stats(entry.getKey()).field(entry.getValue()));
             break;
           case AggregationHelper.AGG_RANGE:
-            RangeBuilder builder = AggregationBuilders.range(entry.getKey()).field(entry.getValue());
+            RangeAggregationBuilder builder = AggregationBuilders.range(entry.getKey()).field(entry.getValue());
             Stream.of(properties.getProperty(key + AggregationHelper.RANGES).split(",")).forEach(range -> {
               String[] values = range.split(":");
               if (values.length != 2) throw new IllegalArgumentException("Range From and To are not defined");

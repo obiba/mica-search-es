@@ -10,6 +10,8 @@
 
 package org.obiba.es.mica.mapping;
 
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -34,8 +36,9 @@ public class ProjectIndexConfiguration extends AbstractIndexConfiguration {
         Indexer.PUBLISHED_PROJECT_INDEX.equals(indexName)) {
 
       try {
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName).setType(Indexer.PROJECT_TYPE)
-            .setSource(createMappingProperties()).execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(createMappingProperties()), RequestOptions.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -47,7 +50,7 @@ public class ProjectIndexConfiguration extends AbstractIndexConfiguration {
 
     // properties
     mapping.startObject("properties");
-    mapping.startObject("id").field("type", "string").field("index", "not_analyzed").endObject();
+    mapping.startObject("id").field("type", "keyword").endObject();
     appendMembershipProperties(mapping);
     Stream.of(Indexer.PROJECT_LOCALIZED_ANALYZED_FIELDS)
         .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));

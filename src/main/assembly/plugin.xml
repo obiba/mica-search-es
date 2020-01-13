@@ -50,7 +50,19 @@
           org.elasticsearch:*
         </include>
         <include>
+          org.elasticsearch.client:*
+        </include>
+        <include>
+          org.elasticsearch.plugin:*
+        </include>
+        <include>
           org.apache.lucene:*
+        </include>
+        <include>
+          org.apache.logging.log4j:*
+        </include>
+        <include>
+          org.apache.httpcomponents:*
         </include>
         <include>
           org.yaml:*

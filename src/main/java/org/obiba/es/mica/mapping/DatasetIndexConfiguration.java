@@ -11,6 +11,8 @@
 package org.obiba.es.mica.mapping;
 
 import com.google.common.collect.Lists;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -32,8 +34,9 @@ public class DatasetIndexConfiguration extends AbstractIndexConfiguration {
     if (Indexer.DRAFT_DATASET_INDEX.equals(indexName) ||
         Indexer.PUBLISHED_DATASET_INDEX.equals(indexName)) {
       try {
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName).setType(Indexer.DATASET_TYPE)
-            .setSource(createMappingProperties()).execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(createMappingProperties()), RequestOptions.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

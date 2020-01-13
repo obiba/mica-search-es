@@ -640,7 +640,7 @@ public class RQLQuery implements ESQuery {
               for (int i = 0; i < node.getArgumentsSize(); i++) {
                 SortBuilder sortBuilder = processArgument(node.getArgument(i).toString());
                 ((FieldSortBuilder) sortBuilder).unmappedType("string");
-                sortBuilder.missing("_last");
+                ((FieldSortBuilder) sortBuilder).missing("_last"); // TODO find out if this means anything anymore
                 sortBuilders.add(sortBuilder);
               }
             }

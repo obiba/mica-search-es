@@ -32,7 +32,7 @@ public class ESResponseDocumentResults implements Searcher.DocumentResults {
 
   @Override
   public long getTotal() {
-    return response.getHits().getTotalHits();
+    return response.getHits().getTotalHits().value;
   }
 
   @Override

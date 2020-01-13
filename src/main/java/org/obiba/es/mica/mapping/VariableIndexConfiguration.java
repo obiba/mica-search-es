@@ -10,7 +10,9 @@
 
 package org.obiba.es.mica.mapping;
 
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -33,12 +35,17 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     }
   }
 
-  private void setMappingProperties(Client client, String indexName) {
+  private void setMappingProperties(RestHighLevelClient client, String indexName) {
     try {
-      client.admin().indices().preparePutMapping(indexName).setType(Indexer.HARMONIZED_VARIABLE_TYPE)
-          .setSource(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)).execute().actionGet();
-      client.admin().indices().preparePutMapping(indexName).setType(Indexer.VARIABLE_TYPE)
-          .setSource(createMappingProperties(Indexer.VARIABLE_TYPE)).execute().actionGet();
+      client
+        .indices()
+        .putMapping(new PutMappingRequest(indexName)
+          .source(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)), RequestOptions.DEFAULT);
+
+      client
+        .indices()
+        .putMapping(new PutMappingRequest(indexName)
+          .source(createMappingProperties(Indexer.VARIABLE_TYPE)), RequestOptions.DEFAULT);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -47,8 +54,8 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
   private XContentBuilder createMappingProperties(String type) throws IOException {
     XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(type);
     mapping.startArray("dynamic_templates").startObject().startObject("und").field("match", "und")
-        .field("match_mapping_type", "string").startObject("mapping").field("type", "string")
-        .field("index", "not_analyzed").endObject().endObject().endObject().endArray();
+        .field("match_mapping_type", "text").startObject("mapping").field("type", "keyword")
+        .endObject().endObject().endObject().endArray();
 
     // properties
     mapping.startObject("properties");

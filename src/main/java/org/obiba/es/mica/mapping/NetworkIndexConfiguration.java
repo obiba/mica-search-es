@@ -11,6 +11,8 @@
 package org.obiba.es.mica.mapping;
 
 import com.google.common.collect.Lists;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -37,8 +39,9 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
         Indexer.PUBLISHED_NETWORK_INDEX.equals(indexName)) {
 
       try {
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName).setType(Indexer.NETWORK_TYPE)
-            .setSource(createMappingProperties()).execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(createMappingProperties()), RequestOptions.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -46,7 +49,7 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
   }
 
   private XContentBuilder createMappingProperties() throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(Indexer.NETWORK_TYPE);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     startDynamicTemplate(mapping);
     dynamicTemplateExcludeFieldFromSearch(mapping, "parent_id", "*Memberships.parentId");
     endDynamicTemplate(mapping);
@@ -56,16 +59,16 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
     Taxonomy taxonomy = getTaxonomy();
     taxonomy.addVocabulary(newVocabularyBuilder().name("raw_id").field("id").staticField().build());
     addLocalizedVocabularies(taxonomy, "acronym", "name", "description");
-    List<String> ignore = Lists.newArrayList(
-        "memberships.investigator.person.fullName",
-        "memberships.investigator.person.institution.name.und",
-        "memberships.contact.person.fullName",
-        "memberships.contact.person.institution.name.und"
-    );
+//    List<String> ignore = Lists.newArrayList(
+//        "memberships.investigator.person.fullName",
+//        "memberships.investigator.person.institution.name.und",
+//        "memberships.contact.person.fullName",
+//        "memberships.contact.person.institution.name.und"
+//    );
+//
+//    addTaxonomyFields(mapping, taxonomy, ignore);
 
-    addTaxonomyFields(mapping, taxonomy, ignore);
-
-    mapping.endObject().endObject();
+    mapping.endObject();
     return mapping;
   }
 

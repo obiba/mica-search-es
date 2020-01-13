@@ -10,6 +10,8 @@
 
 package org.obiba.es.mica.mapping;
 
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -35,8 +37,10 @@ public class FileIndexConfiguration extends AbstractIndexConfiguration {
         String attachmentField = Indexer.ATTACHMENT_DRAFT_INDEX.equals(indexName)
             ? "attachment"
             : "publishedAttachment";
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName).setType(Indexer.ATTACHMENT_TYPE)
-            .setSource(createMappingProperties(Indexer.ATTACHMENT_TYPE, attachmentField)).execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName)
+            .source(createMappingProperties(Indexer.ATTACHMENT_TYPE, attachmentField)), RequestOptions.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -46,9 +50,9 @@ public class FileIndexConfiguration extends AbstractIndexConfiguration {
   private XContentBuilder createMappingProperties(String type, String attachmentField) throws IOException {
     XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(type);
     mapping.startObject("properties");
-    mapping.startObject("id").field("type", "string").field("index", "not_analyzed").endObject();
+    mapping.startObject("id").field("type", "keyword").endObject();
     createMappingWithAndWithoutAnalyzer(mapping, "name");
-    mapping.startObject("path").field("type", "string").field("index", "not_analyzed").endObject();
+    mapping.startObject("path").field("type", "keyword").endObject();
     mapping.startObject(attachmentField).startObject("properties");
     createMappingWithAndWithoutAnalyzer(mapping, "type");
     createMappingWithAndWithoutAnalyzer(mapping, "name");

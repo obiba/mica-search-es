@@ -34,12 +34,12 @@ public class ESHitDocumentResult implements Searcher.DocumentResult {
 
   @Override
   public boolean hasSource() {
-    return hit.sourceRef() != null;
+    return hit.getSourceRef() != null;
   }
 
   @Override
   public Map<String, Object> getSource() {
-    return hit.getSource();
+    return hit.getSourceAsMap();
   }
 
   @Override
@@ -50,7 +50,7 @@ public class ESHitDocumentResult implements Searcher.DocumentResult {
   @Override
   public String getClassName() {
     if (!hasSource()) return null;
-    Object className = hit.getSource().get("className");
+    Object className = hit.getSourceAsMap().get("className");
     return className == null ? null : className.toString();
   }
 }

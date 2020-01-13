@@ -12,25 +12,32 @@ package org.obiba.es.mica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.ReadContext;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.client.IndicesClient;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.indices.GetMappingsRequest;
+import org.elasticsearch.client.indices.GetMappingsResponse;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.obiba.mica.spi.search.IndexFieldMapping;
 import org.obiba.mica.spi.search.Indexable;
 import org.obiba.mica.spi.search.Indexer;
@@ -39,10 +46,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Persistable;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 
 public class ESIndexer implements Indexer {
 
@@ -65,9 +71,14 @@ public class ESIndexer implements Indexer {
   public void index(String indexName, Persistable<String> persistable, Persistable<String> parent) {
     log.debug("Indexing for indexName [{}] indexableObject [{}]", indexName, persistable);
     createIndexIfNeeded(indexName);
-    String parentId = parent == null ? null : parent.getId();
-    getIndexRequestBuilder(indexName, persistable).setSource(toJson(persistable)).setParent(parentId).execute()
-        .actionGet();
+    IndexRequest indexRequest =
+      getIndexRequestBuilder(indexName, persistable.getId(), toJson(persistable), parent == null ? null : parent.getId());
+
+    try {
+      getClient().index(indexRequest, RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      log.error("Failed to index {} in index {} - {}", persistable.getId(), indexName, e);
+    }
   }
 
   @Override
@@ -79,9 +90,14 @@ public class ESIndexer implements Indexer {
   public void index(String indexName, Indexable indexable, Indexable parent) {
     log.debug("Indexing for indexName [{}] indexableObject [{}]", indexName, indexable);
     createIndexIfNeeded(indexName);
-    String parentId = parent == null ? null : parent.getId();
-    getIndexRequestBuilder(indexName, indexable).setSource(toJson(indexable)).setParent(parentId).execute()
-        .actionGet();
+    IndexRequest indexRequest =
+      getIndexRequestBuilder(indexName, indexable.getId(), toJson(indexable), parent == null ? null : parent.getId());
+
+    try {
+      getClient().index(indexRequest, RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      log.error("Failed to index {} in index {} - {}", indexable.getId(), indexName, e);
+    }
   }
 
   @Override
@@ -107,12 +123,24 @@ public class ESIndexer implements Indexer {
     log.debug("Indexing all for indexName [{}] persistableObjectNumber [{}]", indexName, Iterables.size(persistables));
 
     createIndexIfNeeded(indexName);
-    String parentId = parent == null ? null : parent.getId();
-    BulkRequestBuilder bulkRequest = getClient().prepareBulk();
-    persistables.forEach(persistable -> bulkRequest
-        .add(getIndexRequestBuilder(indexName, persistable).setSource(toJson(persistable)).setParent(parentId)));
+    BulkRequest bulkRequest = new BulkRequest();
+    persistables.forEach(persistable ->
+      bulkRequest.add(
+        getIndexRequestBuilder(
+          indexName,
+          persistable.getId(),
+          toJson(persistable),
+          parent == null ? null : parent.getId()
+        ))
+    );
 
-    if (bulkRequest.numberOfActions() > 0) bulkRequest.execute().actionGet();
+    if (bulkRequest.numberOfActions() > 0) {
+      try {
+        getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
+      } catch (IOException e) {
+        log.error("Failed to bulk index {} - {}", indexName, e);
+      }
+    }
   }
 
   @Override
@@ -124,60 +152,86 @@ public class ESIndexer implements Indexer {
   public void indexAllIndexables(String indexName, Iterable<? extends Indexable> indexables, @Nullable String parentId) {
     log.debug("Indexing all indexables for indexName [{}] persistableObjectNumber [{}]", indexName, Iterables.size(indexables));
     createIndexIfNeeded(indexName);
-    BulkRequestBuilder bulkRequest = getClient().prepareBulk();
-    indexables.forEach(indexable -> bulkRequest
-        .add(getIndexRequestBuilder(indexName, indexable).setSource(toJson(indexable)).setParent(parentId)));
+    BulkRequest bulkRequest = new BulkRequest();
+    indexables.forEach(indexable ->
+      bulkRequest.add(getIndexRequestBuilder(indexName, indexable.getId(), toJson(indexable), parentId)));
 
-    if (bulkRequest.numberOfActions() > 0) bulkRequest.execute().actionGet();
+    if (bulkRequest.numberOfActions() > 0) {
+      try {
+        getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
+      } catch (IOException e) {
+        log.error("Failed to bulk index {} - {}", indexName, e);
+      }
+    }
   }
 
   @Override
   public void delete(String indexName, Persistable<String> persistable) {
     createIndexIfNeeded(indexName);
-    getClient().prepareDelete(indexName, persistable.getClass().getSimpleName(), persistable.getId()).execute()
-        .actionGet();
+    DeleteRequest deleteRequest = new DeleteRequest(indexName, persistable.getId());
+    try {
+      getClient().delete(deleteRequest, RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      log.error("Failed to delete document in index {} - {}", persistable.getId(), indexName, e);
+    }
   }
 
   @Override
   public void delete(String indexName, Indexable indexable) {
     createIndexIfNeeded(indexName);
-    getClient().prepareDelete(indexName, getType(indexable), indexable.getId()).execute().actionGet();
+    DeleteRequest deleteRequest = new DeleteRequest(indexName, indexable.getId());
+    try {
+      getClient().delete(deleteRequest, RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      log.error("Failed to delete document in index {} - {}", indexable.getId(), indexName, e);
+    }
   }
 
   @Override
   public void delete(String indexName, String[] types, Map.Entry<String, String> termQuery) {
+    try {
+      if (!getClient().indices().exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT)) return;
+    } catch (IOException e) {
+      log.error("Failed to find index {} - {}", indexName, e);
+    }
+
     QueryBuilder query = QueryBuilders.termQuery(termQuery.getKey(), termQuery.getValue());
     if (types != null) {
       createIndexIfNeeded(indexName);
 
-      BulkRequestBuilder bulkRequest = getClient().prepareBulk();
-
-      SearchRequestBuilder search = getClient().prepareSearch() //
-          .setIndices(indexName) //
-          .setTypes(types) //
-          .setQuery(query) //
-          .setSize(MAX_SIZE) //
-          .setNoFields();
-
-      SearchResponse response = search.execute().actionGet();
-
-      for (SearchHit hit : response.getHits()) {
-        for (String type : types) {
-          DeleteRequestBuilder request = getClient().prepareDelete(indexName, type, hit.getId());
-          if (hit.getFields() != null && hit.getFields().containsKey("_parent")) {
-            String parent = hit.field("_parent").value();
-            request.setParent(parent);
-          }
-
-          bulkRequest.add(request);
-        }
-      }
+      BulkRequest bulkRequest = new BulkRequest();
+      SearchRequest searchRequest = new SearchRequest(indexName);
+      searchRequest.source(
+        new SearchSourceBuilder()
+          .query(query) //
+          .size(MAX_SIZE) //
+          .fetchSource(false)
+      );
 
       try {
-        bulkRequest.execute().get();
-      } catch (InterruptedException | ExecutionException e) {
-        //
+        SearchResponse response = getClient().search(searchRequest, RequestOptions.DEFAULT);
+
+        for (SearchHit hit : response.getHits()) {
+          for (String type : types) {
+
+            DeleteRequest request = new DeleteRequest(indexName, hit.getId());
+            // TODO find a solution for HVariable (new index)
+//            if (hit.getFields() != null && hit.getFields().containsKey("_parent")) {
+//              String parent = hit.field("_parent").value();
+//              request.setRouting(parent);
+//            }
+
+            bulkRequest.add(request);
+          }
+        }
+
+        getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
+      } catch (IOException e) {
+        log.error("Failed to delete document by query in index {} - {}", indexName, e);
       }
+
+
+
     }
   }
 
@@ -188,12 +242,22 @@ public class ESIndexer implements Indexer {
 
   @Override
   public boolean hasIndex(String indexName) {
-    return getClient().admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet().isExists();
+    try {
+      return getClient().indices().exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      log.error("Failed to find index {} - {}", indexName, e);
+    }
+
+    return false;
   }
 
   @Override
   public void dropIndex(String indexName) {
-    getClient().admin().indices().prepareDelete(indexName).execute().actionGet();
+    try {
+      getClient().indices().delete(new DeleteIndexRequest(indexName), RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      log.error("Failed to drop index index {} - {}", indexName, e);
+    }
   }
 
   @Override
@@ -206,14 +270,21 @@ public class ESIndexer implements Indexer {
   //
 
   private ReadContext getContext(String indexName, String indexType) {
-    GetMappingsResponse result = getClient().admin().indices().prepareGetMappings(indexName).execute().actionGet();
-    ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mappings = result.getMappings();
-    MappingMetaData metaData = mappings.get(indexName).get(indexType);
-    Object jsonContent = Configuration.defaultConfiguration().jsonProvider().parse(metaData.source().toString());
-    return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(jsonContent);
+    try {
+      GetMappingsResponse result = getClient().indices().getMapping(new GetMappingsRequest().indices(indexName), RequestOptions.DEFAULT);
+      Map<String, MappingMetaData> mappings = result.mappings();
+      MappingMetaData metaData = mappings.get(indexName);
+      Object jsonContent = Configuration.defaultConfiguration().jsonProvider().parse(metaData.source().toString());
+      return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(jsonContent);
+
+    } catch (IOException e) {
+      log.error("Failed to drop index index {} - {}", indexName, e);
+    }
+
+    return null;
   }
 
-  private Client getClient() {
+  private RestHighLevelClient getClient() {
     return esSearchService.getClient();
   }
 
@@ -225,12 +296,16 @@ public class ESIndexer implements Indexer {
     }
   }
 
-  private IndexRequestBuilder getIndexRequestBuilder(String indexName, Persistable<String> persistable) {
-    return getClient().prepareIndex(indexName, persistable.getClass().getSimpleName(), persistable.getId());
-  }
+  private IndexRequest getIndexRequestBuilder(String indexName, String id, String source, String parentId) {
+    IndexRequest request = new IndexRequest(indexName)
+      .id(id)
+      .source(source, XContentType.JSON);
 
-  private IndexRequestBuilder getIndexRequestBuilder(String indexName, Indexable indexable) {
-    return getClient().prepareIndex(indexName, getType(indexable), indexable.getId());
+    if (parentId != null) {
+      request.routing(parentId);
+    }
+
+    return request;
   }
 
   private String getType(Indexable indexable) {
@@ -239,7 +314,8 @@ public class ESIndexer implements Indexer {
 
   private synchronized void createIndexIfNeeded(String indexName) {
     log.trace("Ensuring index existence for index {}", indexName);
-    IndicesAdminClient indicesAdmin = getClient().admin().indices();
+    IndicesClient indicesAdmin = getClient().indices();
+
     if (!hasIndex(indexName)) {
       log.info("Creating index {}", indexName);
 
@@ -248,7 +324,11 @@ public class ESIndexer implements Indexer {
           .put("number_of_shards", esSearchService.getNbShards()) //
           .put("number_of_replicas", esSearchService.getNbReplicas()).build();
 
-      indicesAdmin.prepareCreate(indexName).setSettings(settings).execute().actionGet();
+      try {
+        indicesAdmin.create(new CreateIndexRequest(indexName).settings(settings), RequestOptions.DEFAULT);
+      } catch (IOException e) {
+        log.error("Failed to create index index {} - {}", indexName, e);
+      }
       esSearchService.getIndexConfigurationListeners().forEach(listener -> listener.onIndexCreated(esSearchService, indexName));
     }
   }

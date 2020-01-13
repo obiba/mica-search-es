@@ -10,6 +10,8 @@
 
 package org.obiba.es.mica.mapping;
 
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
@@ -31,8 +33,10 @@ public class PersonIndexConfiguration extends AbstractIndexConfiguration {
   public void onIndexCreated(SearchEngineService searchEngineService, String indexName) {
     if (Indexer.PERSON_INDEX.equals(indexName)) {
       try {
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName).setType(Indexer.PERSON_TYPE)
-            .setSource(createMappingProperties(Indexer.PERSON_TYPE)).execute().actionGet();
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName)
+            .source(createMappingProperties(Indexer.PERSON_TYPE)), RequestOptions.DEFAULT);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -40,16 +44,16 @@ public class PersonIndexConfiguration extends AbstractIndexConfiguration {
   }
 
   private XContentBuilder createMappingProperties(String type) throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(type);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     mapping.startObject("properties");
-    mapping.startObject("id").field("type", "string").field("index", "not_analyzed").endObject();
+    mapping.startObject("id").field("type", "keyword").endObject();
     mapping.startObject("studyMemberships").startObject("properties");
-    mapping.startObject("parentId").field("type", "string").field("index", "not_analyzed").endObject();
-    mapping.startObject("role").field("type", "string").field("index", "not_analyzed").endObject();
+    mapping.startObject("parentId").field("type", "keyword").endObject();
+    mapping.startObject("role").field("type", "keyword").endObject();
     mapping.endObject().endObject();
     mapping.startObject("networkMemberships").startObject("properties");
-    mapping.startObject("parentId").field("type", "string").field("index", "not_analyzed").endObject();
-    mapping.startObject("role").field("type", "string").field("index", "not_analyzed").endObject();
+    mapping.startObject("parentId").field("type", "keyword").endObject();
+    mapping.startObject("role").field("type", "keyword").endObject();
     mapping.endObject().endObject();
     mapping.startObject("institution");
     mapping.startObject("properties");
@@ -61,7 +65,7 @@ public class PersonIndexConfiguration extends AbstractIndexConfiguration {
     createMappingWithAndWithoutAnalyzer(mapping, "fullName");
     createMappingWithAndWithoutAnalyzer(mapping, "email");
     mapping.endObject(); // properties
-    mapping.endObject().endObject();
+    mapping.endObject();
 
     return mapping;
   }
