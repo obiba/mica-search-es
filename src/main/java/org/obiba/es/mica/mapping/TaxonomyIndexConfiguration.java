@@ -33,27 +33,34 @@ public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
 
   @Override
   public void onIndexCreated(SearchEngineService searchEngineService, String indexName) {
-    if (Indexer.TAXONOMY_INDEX.equals(indexName)) {
-      try {
-        getClient(searchEngineService)
-          .indices()
-          .putMapping(new PutMappingRequest(indexName).source(createTaxonomyMappingProperties()), RequestOptions.DEFAULT);
+    XContentBuilder mapping = null;
+    try {
 
-        getClient(searchEngineService)
-          .indices()
-          .putMapping(new PutMappingRequest(indexName).source(createVocabularyMappingProperties()), RequestOptions.DEFAULT);
-
-        getClient(searchEngineService)
-          .indices()
-          .putMapping(new PutMappingRequest(indexName).source(createTermMappingProperties()), RequestOptions.DEFAULT);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+      switch (indexName) {
+        case Indexer.TAXONOMY_INDEX:
+          mapping = createTaxonomyMappingProperties();
+          break;
+        case Indexer.VOCABULARY_INDEX:
+          mapping = createVocabularyMappingProperties();
+          break;
+        case Indexer.TERM_INDEX:
+          mapping = createTermMappingProperties();
+          break;
       }
+
+      if (mapping != null) {
+        getClient(searchEngineService)
+          .indices()
+          .putMapping(new PutMappingRequest(indexName).source(mapping), RequestOptions.DEFAULT);
+      }
+      
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
   private XContentBuilder createTaxonomyMappingProperties() throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(Indexer.TAXONOMY_TYPE);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     mapping.startObject("properties");
     createMappingWithoutAnalyzer(mapping, "id");
     createMappingWithoutAnalyzer(mapping, "target");
@@ -61,13 +68,12 @@ public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
     Stream.of(Indexer.TAXONOMY_LOCALIZED_ANALYZED_FIELDS)
         .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
     mapping.endObject(); // properties
-    mapping.endObject().endObject();
+    mapping.endObject();
     return mapping;
   }
 
   private XContentBuilder createVocabularyMappingProperties() throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-        .startObject(Indexer.TAXONOMY_VOCABULARY_TYPE);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     mapping.startObject("properties");
     createMappingWithoutAnalyzer(mapping, "id");
     createMappingWithoutAnalyzer(mapping, "target");
@@ -76,13 +82,12 @@ public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
     Stream.of(Indexer.TAXONOMY_LOCALIZED_ANALYZED_FIELDS)
         .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
     mapping.endObject(); // properties
-    mapping.endObject().endObject();
+    mapping.endObject();
     return mapping;
   }
 
   private XContentBuilder createTermMappingProperties() throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-        .startObject(Indexer.TAXONOMY_TERM_TYPE);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     mapping.startObject("properties");
     createMappingWithoutAnalyzer(mapping, "id");
     createMappingWithoutAnalyzer(mapping, "target");
@@ -92,7 +97,7 @@ public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
     Stream.of(Indexer.TAXONOMY_LOCALIZED_ANALYZED_FIELDS)
         .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
     mapping.endObject(); // properties
-    mapping.endObject().endObject();
+    mapping.endObject();
     return mapping;
   }
 

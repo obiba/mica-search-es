@@ -55,20 +55,21 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
     endDynamicTemplate(mapping);
 
     mapping.startObject("properties");
-    appendMembershipProperties(mapping);
+//    appendMembershipProperties(mapping);
     Taxonomy taxonomy = getTaxonomy();
-    taxonomy.addVocabulary(newVocabularyBuilder().name("raw_id").field("id").staticField().build());
+//    taxonomy.addVocabulary(newVocabularyBuilder().name("raw_id").field("id").staticField().build());
     addLocalizedVocabularies(taxonomy, "acronym", "name", "description");
-//    List<String> ignore = Lists.newArrayList(
+    List<String> ignore = Lists.newArrayList(
+      "id"
 //        "memberships.investigator.person.fullName",
 //        "memberships.investigator.person.institution.name.und",
 //        "memberships.contact.person.fullName",
 //        "memberships.contact.person.institution.name.und"
-//    );
-//
-//    addTaxonomyFields(mapping, taxonomy, ignore);
+    );
 
-    mapping.endObject();
+    addTaxonomyFields(mapping, taxonomy, ignore);
+
+    mapping.endObject().endObject();
     return mapping;
   }
 

@@ -112,7 +112,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
 
   protected void createMappingWithoutAnalyzer(XContentBuilder mapping, String name, String type) {
     try {
-      mapping.startObject(name).field("type", resolveType(type)).endObject();
+      mapping.startObject(name).field("type", "keyword").endObject();
     } catch (IOException e) {
       log.error("Failed to create localized mappings: '{}'", e);
     }
@@ -142,7 +142,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
   }
 
   protected void appendMembershipProperties(XContentBuilder mapping) throws IOException {
-    XContentBuilder membershipsMapping = mapping.startObject("memberships1").startObject("properties");
+    XContentBuilder membershipsMapping = mapping.startObject("memberships").startObject("properties");
     for (String role : configurationProvider.getRoles()) {
       XContentBuilder personMapping = membershipsMapping.startObject(role).startObject("properties") //
           .startObject("person").startObject("properties");
