@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigurationListener {
   private static final Logger log = LoggerFactory.getLogger(AbstractIndexConfiguration.class);
   private static final String TRUE = "true";
+  private static final String KEYWORD = "keyword";
   private static final String LOCALIZED = "localized";
   private static final String TYPE = "type";
   private static final String STATIC = "static";
@@ -112,7 +113,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
 
   protected void createMappingWithoutAnalyzer(XContentBuilder mapping, String name, String type) {
     try {
-      mapping.startObject(name).field("type", "keyword").endObject();
+      mapping.startObject(name).field("type", resolveType(type)).endObject();
     } catch (IOException e) {
       log.error("Failed to create localized mappings: '{}'", e);
     }
@@ -186,6 +187,8 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
           createLocalizedMappingWithAnalyzers(mapping, node.getName());
         } else if (v.hasTerms() || TRUE.equals(v.getAttributeValue(STATIC))) {
           createMappingWithoutAnalyzer(mapping, node.getName(), v.getAttributeValue(TYPE));
+        } else {
+          log.info("##### {}", v.getName());
         }
       } else {
         mapping.startObject(node.getName()).startObject("properties");
@@ -202,6 +205,8 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
           return "long";
         case "decimal":
           return "double";
+        case "text":
+          return "text";
       }
     }
 
@@ -238,8 +243,6 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
           }
 
           insertInSchema(root, path, v);
-        } else {
-          log.info("LOGGING {}", fieldName);
         }
       });
 
