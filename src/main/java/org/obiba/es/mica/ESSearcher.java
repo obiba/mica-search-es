@@ -100,6 +100,7 @@ public class ESSearcher implements Searcher {
       .query(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
       .from(query.getFrom()) //
       .size(scope == DETAIL ? query.getSize() : 0) //
+      .trackTotalHits(true)
       .aggregation(AggregationBuilders.global(AGG_TOTAL_COUNT));
 
     List<String> sourceFields = getSourceFields(query, mandatorySourceFields);
@@ -135,6 +136,7 @@ public class ESSearcher implements Searcher {
         .from(0) //
         .size(0) // no results needed for a coverage
         .fetchSource(false)
+        .trackTotalHits(true)
         .aggregation(AggregationBuilders.global(Searcher.AGG_TOTAL_COUNT));
 
     appendAggregations(sourceBuilder, query.getAggregationBuckets(), aggregationProperties);
@@ -166,6 +168,7 @@ public class ESSearcher implements Searcher {
         .from(0) //
         .size(0) // no results needed for a coverage
         .fetchSource(false)
+        .trackTotalHits(true)
         .aggregation(AggregationBuilders.global(Searcher.AGG_TOTAL_COUNT));
 
     aggregationParser.getAggregations(aggregationProperties, subAggregationProperties).forEach(sourceBuilder::aggregation);
@@ -197,6 +200,7 @@ public class ESSearcher implements Searcher {
         .from(0) //
         .size(0) // no results needed for a coverage
         .fetchSource(false)
+        .trackTotalHits(true)
         .aggregation(AggregationBuilders.global(Searcher.AGG_TOTAL_COUNT));
 
     aggregationParser.getAggregations(aggregationProperties).forEach(sourceBuilder::aggregation);

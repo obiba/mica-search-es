@@ -12,7 +12,6 @@ package org.obiba.es.mica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
@@ -20,7 +19,6 @@ import com.jayway.jsonpath.ReadContext;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -196,23 +194,20 @@ public class ESIndexer implements Indexer {
     }
 
     QueryBuilder query = QueryBuilders.termQuery(termQuery.getKey(), termQuery.getValue());
-    if (types != null) {
-      createIndexIfNeeded(indexName);
 
-      BulkRequest bulkRequest = new BulkRequest();
-      SearchRequest searchRequest = new SearchRequest(indexName);
-      searchRequest.source(
-        new SearchSourceBuilder()
-          .query(query) //
-          .size(MAX_SIZE) //
-          .fetchSource(false)
-      );
+    BulkRequest bulkRequest = new BulkRequest();
+    SearchRequest searchRequest = new SearchRequest(indexName);
+    searchRequest.source(
+      new SearchSourceBuilder()
+        .query(query) //
+        .size(MAX_SIZE) //
+        .fetchSource(false)
+    );
 
-      try {
-        SearchResponse response = getClient().search(searchRequest, RequestOptions.DEFAULT);
-
+    try {
+      SearchResponse response = getClient().search(searchRequest, RequestOptions.DEFAULT);
+      if (response.getHits().getTotalHits().value > 0) {
         for (SearchHit hit : response.getHits()) {
-          for (String type : types) {
 
             DeleteRequest request = new DeleteRequest(indexName, hit.getId());
             // TODO find a solution for HVariable (new index)
@@ -222,16 +217,12 @@ public class ESIndexer implements Indexer {
 //            }
 
             bulkRequest.add(request);
-          }
         }
 
         getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
-      } catch (IOException e) {
-        log.error("Failed to delete document by query in index {} - {}", indexName, e);
       }
-
-
-
+    } catch (IOException e) {
+      log.error("Failed to delete document by query in index {} - {}", indexName, e);
     }
   }
 

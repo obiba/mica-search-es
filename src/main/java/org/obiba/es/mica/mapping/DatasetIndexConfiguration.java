@@ -44,7 +44,7 @@ public class DatasetIndexConfiguration extends AbstractIndexConfiguration {
   }
 
   private XContentBuilder createMappingProperties() throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(Indexer.DATASET_TYPE);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     mapping.startObject("properties");
     Taxonomy taxonomy = getTaxonomy();
     addStaticVocabularies(taxonomy, "studyTable.studyId", "studyTables.studyId", "harmonizationTable.studyId", "harmonizationTables.studyId");

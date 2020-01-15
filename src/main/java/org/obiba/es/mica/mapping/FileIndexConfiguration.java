@@ -48,7 +48,7 @@ public class FileIndexConfiguration extends AbstractIndexConfiguration {
   }
 
   private XContentBuilder createMappingProperties(String type, String attachmentField) throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(type);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     mapping.startObject("properties");
     mapping.startObject("id").field("type", "keyword").endObject();
     createMappingWithAndWithoutAnalyzer(mapping, "name");
@@ -59,7 +59,7 @@ public class FileIndexConfiguration extends AbstractIndexConfiguration {
     createLocalizedMappingWithAnalyzers(mapping, "description");
     mapping.endObject().endObject(); // attachment
     mapping.endObject(); // properties
-    mapping.endObject().endObject();
+    mapping.endObject();
 
     return mapping;
   }

@@ -37,10 +37,10 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
 
   private void setMappingProperties(RestHighLevelClient client, String indexName) {
     try {
-      client
-        .indices()
-        .putMapping(new PutMappingRequest(indexName)
-          .source(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)), RequestOptions.DEFAULT);
+//      client
+//        .indices()
+//        .putMapping(new PutMappingRequest(indexName)
+//          .source(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)), RequestOptions.DEFAULT);
 
       client
         .indices()
@@ -52,14 +52,15 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
   }
 
   private XContentBuilder createMappingProperties(String type) throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(type);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
     mapping.startArray("dynamic_templates").startObject().startObject("und").field("match", "und")
-        .field("match_mapping_type", "text").startObject("mapping").field("type", "keyword")
+        .field("match_mapping_type", "string").startObject("mapping").field("type", "keyword")
         .endObject().endObject().endObject().endArray();
 
     // properties
     mapping.startObject("properties");
     createMappingWithoutAnalyzer(mapping, "id");
+    createMappingWithoutAnalyzer(mapping, "containerId");
     createMappingWithoutAnalyzer(mapping, "studyId");
     createMappingWithoutAnalyzer(mapping, "populationId");
     createMappingWithoutAnalyzer(mapping, "dceId");
@@ -71,25 +72,25 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     createMappingWithoutAnalyzer(mapping, "nature");
 
     // attributes from taxonomies
-    try {
-      mapping.startObject("attributes");
-      mapping.startObject("properties");
-      Stream.of(Indexer.VARIABLE_LOCALIZED_ANALYZED_FIELDS)
-          .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
-      mapping.endObject(); // properties
-      mapping.endObject(); // attributes
-    } catch (Exception e) {
-      // ignore
-    }
+//    try {
+//      mapping.startObject("attributes");
+//      mapping.startObject("properties");
+//      Stream.of(Indexer.VARIABLE_LOCALIZED_ANALYZED_FIELDS)
+//          .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
+//      mapping.endObject(); // properties
+//      mapping.endObject(); // attributes
+//    } catch (Exception e) {
+//      // ignore
+//    }
 
     mapping.endObject(); // properties
 
-    // parent
-    if (Indexer.HARMONIZED_VARIABLE_TYPE.equals(type)) {
-      mapping.startObject("_parent").field("type", Indexer.VARIABLE_TYPE).endObject();
-    }
+//    // parent
+//    if (Indexer.HARMONIZED_VARIABLE_TYPE.equals(type)) {
+//      mapping.startObject("_parent").field("type", Indexer.VARIABLE_TYPE).endObject();
+//    }
 
-    mapping.endObject().endObject();
+    mapping.endObject();
     return mapping;
   }
 

@@ -187,8 +187,6 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
           createLocalizedMappingWithAnalyzers(mapping, node.getName());
         } else if (v.hasTerms() || TRUE.equals(v.getAttributeValue(STATIC))) {
           createMappingWithoutAnalyzer(mapping, node.getName(), v.getAttributeValue(TYPE));
-        } else {
-          log.info("##### {}", v.getName());
         }
       } else {
         mapping.startObject(node.getName()).startObject("properties");
