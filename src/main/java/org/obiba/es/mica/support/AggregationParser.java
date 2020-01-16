@@ -104,7 +104,7 @@ public class AggregationParser {
             if (subAggregations != null && subAggregations.containsKey(entry.getValue())) {
               subAggregations.get(entry.getValue()).forEach(termBuilder::subAggregation);
             }
-            termsBuilders.add(termBuilder.order(BucketOrder.key(true))); // .size(0) TODO: is there a way to set a size that is == to max terms and not an arbitrary number
+            termsBuilders.add(termBuilder.order(BucketOrder.key(true)).size(Short.MAX_VALUE)); // .size(0) TODO: is there a way to set a size that is == to max terms and not an arbitrary number
             break;
           case AggregationHelper.AGG_STATS:
             termsBuilders.add(AggregationBuilders.stats(entry.getKey()).field(entry.getValue()));

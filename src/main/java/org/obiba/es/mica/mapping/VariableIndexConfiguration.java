@@ -33,14 +33,17 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     if (Indexer.PUBLISHED_VARIABLE_INDEX.equals(indexName)) {
       setMappingProperties(getClient(searchEngineService), indexName);
     }
+    if (Indexer.PUBLISHED_HVARIABLE_INDEX.equals(indexName)) {
+      setMappingProperties(getClient(searchEngineService), indexName);
+    }
   }
 
   private void setMappingProperties(RestHighLevelClient client, String indexName) {
     try {
-//      client
-//        .indices()
-//        .putMapping(new PutMappingRequest(indexName)
-//          .source(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)), RequestOptions.DEFAULT);
+      client
+        .indices()
+        .putMapping(new PutMappingRequest(indexName)
+          .source(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)), RequestOptions.DEFAULT);
 
       client
         .indices()
@@ -72,16 +75,16 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     createMappingWithoutAnalyzer(mapping, "nature");
 
     // attributes from taxonomies
-//    try {
-//      mapping.startObject("attributes");
-//      mapping.startObject("properties");
-//      Stream.of(Indexer.VARIABLE_LOCALIZED_ANALYZED_FIELDS)
-//          .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
-//      mapping.endObject(); // properties
-//      mapping.endObject(); // attributes
-//    } catch (Exception e) {
-//      // ignore
-//    }
+    try {
+      mapping.startObject("attributes");
+      mapping.startObject("properties");
+      Stream.of(Indexer.VARIABLE_LOCALIZED_ANALYZED_FIELDS)
+          .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
+      mapping.endObject(); // properties
+      mapping.endObject(); // attributes
+    } catch (Exception e) {
+      // ignore
+    }
 
     mapping.endObject(); // properties
 

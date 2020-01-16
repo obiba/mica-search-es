@@ -22,6 +22,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.IdsQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -317,7 +318,7 @@ public class ESSearcher implements Searcher {
 
   @Override
   public InputStream getDocumentById(String indexName, String type, String id) {
-    QueryBuilder query = QueryBuilders.idsQuery(type).addIds(id);
+    QueryBuilder query = new IdsQueryBuilder().addIds(id);
 
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
         .query(query);
