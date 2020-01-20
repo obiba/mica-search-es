@@ -5,6 +5,7 @@ script:
 node.local: true
 discovery.zen.ping.multicast.enabled: false
 index:
+    max_ngram_diff: 18
     max_result_window: 1000000
     analysis:
         analyzer:
@@ -24,5 +25,5 @@ index:
                 preserve_original: true
             mica_nGram_filter:
                 type: nGram
-                min_gram: 3
-                max_gram: 3
+                min_gram: 2
+                max_gram: 20
