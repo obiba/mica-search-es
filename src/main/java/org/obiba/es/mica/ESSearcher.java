@@ -341,7 +341,7 @@ public class ESSearcher implements Searcher {
   public InputStream getDocumentByClassName(String indexName, String type, Class clazz, String id) {
     QueryBuilder query = QueryBuilders.queryStringQuery(clazz.getSimpleName()).field("className");
     query = QueryBuilders.boolQuery().must(query)
-        .must(QueryBuilders.idsQuery(type).addIds(id));
+        .must(QueryBuilders.idsQuery().addIds(id));
 
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
         .query(query);

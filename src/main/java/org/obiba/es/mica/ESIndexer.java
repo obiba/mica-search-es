@@ -20,8 +20,6 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -34,8 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.obiba.mica.spi.search.IndexFieldMapping;
 import org.obiba.mica.spi.search.Indexable;
 import org.obiba.mica.spi.search.Indexer;
@@ -195,32 +192,8 @@ public class ESIndexer implements Indexer {
 
     QueryBuilder query = QueryBuilders.termQuery(termQuery.getKey(), termQuery.getValue());
 
-    BulkRequest bulkRequest = new BulkRequest();
-    SearchRequest searchRequest = new SearchRequest(indexName);
-    searchRequest.source(
-      new SearchSourceBuilder()
-        .query(query) //
-        .size(MAX_SIZE) //
-        .fetchSource(false)
-    );
-
     try {
-      SearchResponse response = getClient().search(searchRequest, RequestOptions.DEFAULT);
-      if (response.getHits().getTotalHits().value > 0) {
-        for (SearchHit hit : response.getHits()) {
-
-            DeleteRequest request = new DeleteRequest(indexName, hit.getId());
-            // TODO find a solution for HVariable (new index)
-//            if (hit.getFields() != null && hit.getFields().containsKey("_parent")) {
-//              String parent = hit.field("_parent").value();
-//              request.setRouting(parent);
-//            }
-
-            bulkRequest.add(request);
-        }
-
-        getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
-      }
+      getClient().deleteByQuery(new DeleteByQueryRequest(indexName).setQuery(query), RequestOptions.DEFAULT);
     } catch (IOException e) {
       log.error("Failed to delete document by query in index {} - {}", indexName, e);
     }
