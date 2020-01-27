@@ -12,18 +12,22 @@ index:
             mica_index_analyzer:
                type: custom
                char_filter: [html_strip]
-               tokenizer: standard
+               tokenizer: mica_char_group_tokenizer
                filter: [lowercase,mica_asciifolding_filter,mica_nGram_filter]
             mica_search_analyzer:
                type: custom
                char_filter: [html_strip]
-               tokenizer: standard
+               tokenizer: mica_char_group_tokenizer
                filter: [lowercase,mica_asciifolding_filter]
         filter:
             mica_asciifolding_filter:
                 type: asciifolding
                 preserve_original: true
             mica_nGram_filter:
-                type: nGram
+                type: ngram
                 min_gram: 2
                 max_gram: 20
+        tokenizer:
+            mica_char_group_tokenizer:
+                type: char_group
+                tokenize_on_chars: ["whitespace", "-", "_"]
