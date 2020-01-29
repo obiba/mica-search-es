@@ -65,9 +65,7 @@ public class ESIndexer implements Indexer {
   public void index(String indexName, Persistable<String> persistable, Persistable<String> parent) {
     log.debug("Indexing for indexName [{}] indexableObject [{}]", indexName, persistable);
     createIndexIfNeeded(indexName);
-    String parentId = parent == null ? null : parent.getId();
-    getIndexRequestBuilder(indexName, persistable).setSource(toJson(persistable)).setParent(parentId).execute()
-        .actionGet();
+    getIndexRequestBuilder(indexName, persistable).setSource(toJson(persistable)).setParent(parent == null ? null : parent.getId()).execute().actionGet();
   }
 
   @Override
@@ -79,8 +77,7 @@ public class ESIndexer implements Indexer {
   public void index(String indexName, Indexable indexable, Indexable parent) {
     log.debug("Indexing for indexName [{}] indexableObject [{}]", indexName, indexable);
     createIndexIfNeeded(indexName);
-    String parentId = parent == null ? null : parent.getId();
-    getIndexRequestBuilder(indexName, indexable).setSource(toJson(indexable)).setParent(parentId).execute()
+    getIndexRequestBuilder(indexName, indexable).setSource(toJson(indexable)).setParent(parent == null ? null : parent.getId()).execute()
         .actionGet();
   }
 
@@ -107,10 +104,9 @@ public class ESIndexer implements Indexer {
     log.debug("Indexing all for indexName [{}] persistableObjectNumber [{}]", indexName, Iterables.size(persistables));
 
     createIndexIfNeeded(indexName);
-    String parentId = parent == null ? null : parent.getId();
     BulkRequestBuilder bulkRequest = getClient().prepareBulk();
     persistables.forEach(persistable -> bulkRequest
-        .add(getIndexRequestBuilder(indexName, persistable).setSource(toJson(persistable)).setParent(parentId)));
+        .add(getIndexRequestBuilder(indexName, persistable).setSource(toJson(persistable)).setParent(parent == null ? null : parent.getId())));
 
     if (bulkRequest.numberOfActions() > 0) bulkRequest.execute().actionGet();
   }

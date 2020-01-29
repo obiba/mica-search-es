@@ -31,14 +31,20 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     if (Indexer.PUBLISHED_VARIABLE_INDEX.equals(indexName)) {
       setMappingProperties(getClient(searchEngineService), indexName);
     }
+
+    if (Indexer.PUBLISHED_HVARIABLE_INDEX.equals(indexName)) {
+      setMappingProperties(getClient(searchEngineService), indexName);
+    }
   }
 
   private void setMappingProperties(Client client, String indexName) {
+    String variableType = Indexer.PUBLISHED_HVARIABLE_INDEX.equals(indexName) ? Indexer.HARMONIZED_VARIABLE_TYPE : Indexer.VARIABLE_TYPE;
+
     try {
-      client.admin().indices().preparePutMapping(indexName).setType(Indexer.HARMONIZED_VARIABLE_TYPE)
-          .setSource(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)).execute().actionGet();
-      client.admin().indices().preparePutMapping(indexName).setType(Indexer.VARIABLE_TYPE)
-          .setSource(createMappingProperties(Indexer.VARIABLE_TYPE)).execute().actionGet();
+      client.admin().indices().preparePutMapping(indexName).setType(
+          variableType)
+          .setSource(createMappingProperties(variableType)).execute().actionGet();
+
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -53,6 +59,7 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     // properties
     mapping.startObject("properties");
     createMappingWithoutAnalyzer(mapping, "id");
+    createMappingWithoutAnalyzer(mapping, "containerId");
     createMappingWithoutAnalyzer(mapping, "studyId");
     createMappingWithoutAnalyzer(mapping, "populationId");
     createMappingWithoutAnalyzer(mapping, "dceId");
@@ -76,11 +83,6 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     }
 
     mapping.endObject(); // properties
-
-    // parent
-    if (Indexer.HARMONIZED_VARIABLE_TYPE.equals(type)) {
-      mapping.startObject("_parent").field("type", Indexer.VARIABLE_TYPE).endObject();
-    }
 
     mapping.endObject().endObject();
     return mapping;
