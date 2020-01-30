@@ -51,17 +51,10 @@ public class StudyIndexConfiguration extends AbstractIndexConfiguration {
     endDynamicTemplate(mapping);
 
     mapping.startObject("properties");
-    appendMembershipProperties(mapping);
     Taxonomy taxonomy = getTaxonomy();
     addLocalizedVocabularies(taxonomy, "name", "acronym");
-    addStaticVocabularies(taxonomy, //
-        "populations.dataCollectionEvents.start.yearMonth", //
-        "populations.dataCollectionEvents.end.yearMonth");
     List<String> ignore = Lists.newArrayList(
-        "memberships.investigator.person.fullName",
-        "memberships.investigator.person.institution.name.und",
-        "memberships.contact.person.fullName",
-        "memberships.contact.person.institution.name.und"
+        "id"
     );
     addTaxonomyFields(mapping, taxonomy, ignore);
     mapping.endObject();

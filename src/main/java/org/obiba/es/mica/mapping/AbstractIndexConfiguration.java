@@ -108,7 +108,17 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
 
   protected void createMappingWithoutAnalyzer(XContentBuilder mapping, String name, String type) {
     try {
-      mapping.startObject(name).field("type", resolveType(type)).field("index", "not_analyzed").endObject();
+      String resolvedType = resolveType(type);
+
+      mapping.startObject(name);
+
+      if (resolvedType == null) {
+        mapping.field("type", "string").field("index", "not_analyzed");
+      } else {
+        mapping.field("type", resolvedType);
+      }
+
+      mapping.endObject();
     } catch (IOException e) {
       log.error("Failed to create localized mappings: '{}'", e);
     }
@@ -203,10 +213,12 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
           return "long";
         case "decimal":
           return "double";
+        case "string":
+          return "string";
       }
     }
 
-    return "string";
+    return null;
   }
 
   private void insertInSchema(SchemaNode schema, List<String> path, final Vocabulary vocabulary) {
