@@ -142,6 +142,8 @@ public class ESIndexer implements Indexer {
 
   @Override
   public void delete(String indexName, String[] types, Map.Entry<String, String> termQuery) {
+    if (!hasIndex(indexName)) return;
+
     QueryBuilder query = QueryBuilders.termQuery(termQuery.getKey(), termQuery.getValue());
     if (types != null) {
       createIndexIfNeeded(indexName);
