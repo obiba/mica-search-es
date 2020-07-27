@@ -31,22 +31,34 @@ public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
 
   @Override
   public void onIndexCreated(SearchEngineService searchEngineService, String indexName) {
-    if (Indexer.TAXONOMY_INDEX.equals(indexName)) {
-      try {
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName) //
-            .setType(Indexer.TAXONOMY_TYPE).setSource(createTaxonomyMappingProperties()) //
-            .execute().actionGet();
+    XContentBuilder mapping = null;
+    String type = null;
+    
+    try {
 
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName) //
-            .setType(Indexer.TAXONOMY_VOCABULARY_TYPE).setSource(createVocabularyMappingProperties()) //
-            .execute().actionGet();
-
-        getClient(searchEngineService).admin().indices().preparePutMapping(indexName) //
-            .setType(Indexer.TAXONOMY_TERM_TYPE).setSource(createTermMappingProperties()) //
-            .execute().actionGet();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+      switch (indexName) {
+        case Indexer.TAXONOMY_INDEX:
+          mapping = createTaxonomyMappingProperties();
+          type = Indexer.TAXONOMY_TYPE;
+          break;
+        case Indexer.VOCABULARY_INDEX:
+          mapping = createVocabularyMappingProperties();
+          type = Indexer.TAXONOMY_VOCABULARY_TYPE;
+          break;
+        case Indexer.TERM_INDEX:
+          mapping = createTermMappingProperties();
+          type = Indexer.TAXONOMY_TERM_TYPE;
+          break;
       }
+
+      if (mapping != null) {
+        getClient(searchEngineService).admin().indices().preparePutMapping(indexName) //
+          .setType(type).setSource(mapping) //
+          .execute().actionGet();
+      }
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
