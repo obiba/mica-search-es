@@ -90,10 +90,16 @@ public class AggregationParser {
 
         switch (aggType) {
           case AggregationHelper.AGG_TERMS:
-            TermsBuilder termBuilder = AggregationBuilders.terms(entry.getKey()).field(entry.getValue());
+            String entryValue = entry.getValue();
+            TermsBuilder termBuilder = AggregationBuilders.terms(entry.getKey()).field(entryValue);
             if (minDocCount > -1) termBuilder.minDocCount(minDocCount);
             if (subAggregations != null && subAggregations.containsKey(entry.getValue())) {
-              subAggregations.get(entry.getValue()).forEach(termBuilder::subAggregation);
+              subAggregations.get(entry.getValue()).forEach(aggBuilder -> {
+                // Do not create a nested aggregation of the same term
+                if (!aggBuilder.getName().equals(entryValue)) {
+                  termBuilder.subAggregation(aggBuilder);
+                }
+              });
             }
             termsBuilders.add(termBuilder.order(Terms.Order.term(true)).size(0));
             break;
