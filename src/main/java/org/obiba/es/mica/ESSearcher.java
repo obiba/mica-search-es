@@ -24,7 +24,9 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
+import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -67,7 +69,7 @@ public class ESSearcher implements Searcher {
   ESSearcher(ESSearchEngineService esSearchService) {
     this.esSearchService = esSearchService;
   }
-  
+
   @Override
   public JoinQuery makeJoinQuery(String rql) {
     log.debug("makeJoinQuery: {}", rql);
@@ -421,6 +423,40 @@ public class ESSearcher implements Searcher {
     } catch (IndexNotFoundException e) {
       log.warn("Count of Studies With Variables failed", e);
       return 0;
+    }
+  }
+
+  @Override
+  public Map<Object, Object> harmonizationStatusAggregation(String datasetId, int size, String aggregationFieldName,
+      String statusFieldName) {
+
+    String cleanedField = aggregationFieldName.replaceAll("\\.", "-");
+
+    BoolQueryBuilder builder = QueryBuilders.boolQuery().must(QueryBuilders.termQuery("datasetId", datasetId));
+
+    SearchRequestBuilder request = getClient().prepareSearch("hvariable-published")
+      .setSearchType(DFS_QUERY_THEN_FETCH)
+      .setFrom(0)
+      .setSize(0)
+      .setQuery(builder)
+      .addAggregation(
+        AggregationBuilders.terms(cleanedField).field(aggregationFieldName).size(size)
+          .subAggregation(AggregationBuilders.terms("status").field(statusFieldName)));
+
+    try {
+      log.debug("Request /{}/{}: {}", "hvariable-published", request);
+      if (log.isTraceEnabled()) log.trace("Request /{}: {}", "hvariable-published", request.toString());
+
+      SearchResponse response = request.execute().actionGet();
+      log.debug("Response /{}: {}", "hvariable-published", response);
+
+      StringTerms aggregation = response.getAggregations().get(aggregationFieldName);
+      return aggregation.getBuckets().stream().collect(Collectors.toMap(
+        b -> b.getKey(),
+        b -> ((StringTerms) b.getAggregations().get("status")).getBuckets().stream().collect(Collectors.toMap(sb -> sb.getKey(), sb -> sb.getDocCount()))));
+    } catch (IndexNotFoundException e) {
+      log.error("Failed to get harmonization aggregation for {} - {}", datasetId, e);
+      return null;
     }
   }
 
