@@ -24,7 +24,6 @@ import org.obiba.opal.core.domain.taxonomy.Taxonomy;
 import org.obiba.opal.core.domain.taxonomy.Vocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.util.locale.LanguageTag;
 
 import java.io.IOException;
 import java.util.*;
@@ -37,6 +36,8 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
   private static final String TYPE = "type";
   private static final String STATIC = "static";
   private static final String FIELD = "field";
+
+  private static final String LANGUAGE_TAG_UNDETERMINED = "und";
 
   private final ConfigurationProvider configurationProvider;
 
@@ -86,7 +87,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
       mapping.startObject(name);
       mapping.startObject("properties");
       Stream.concat(configurationProvider.getLocales().stream(), Stream.of(
-          LanguageTag.UNDETERMINED)).forEach(locale -> {
+        LANGUAGE_TAG_UNDETERMINED)).forEach(locale -> {
         try {
           mapping.startObject(locale).field("type", "multi_field");
           createMappingWithAnalyzers(mapping, locale);
@@ -136,27 +137,27 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
 
   protected void createMappingWithAnalyzers(XContentBuilder mapping, String name) throws IOException {
     mapping
-        .startObject("fields")
-        .field("analyzed")
-        .startObject()
-        .field("type", "string")
-        .field("index", "analyzed")
-        .field("analyzer", "mica_index_analyzer")
-        .field("search_analyzer", "mica_search_analyzer")
-        .endObject()
-        .field(name)
-        .startObject()
-        .field("type", "string")
-        .field("index", "not_analyzed")
-        .endObject()
-        .endObject();
+      .startObject("fields")
+      .field("analyzed")
+      .startObject()
+      .field("type", "string")
+      .field("index", "analyzed")
+      .field("analyzer", "mica_index_analyzer")
+      .field("search_analyzer", "mica_search_analyzer")
+      .endObject()
+      .field(name)
+      .startObject()
+      .field("type", "string")
+      .field("index", "not_analyzed")
+      .endObject()
+      .endObject();
   }
 
   protected void appendMembershipProperties(XContentBuilder mapping) throws IOException {
     XContentBuilder membershipsMapping = mapping.startObject("memberships").startObject("properties");
     for (String role : configurationProvider.getRoles()) {
       XContentBuilder personMapping = membershipsMapping.startObject(role).startObject("properties") //
-          .startObject("person").startObject("properties");
+        .startObject("person").startObject("properties");
       createMappingWithAndWithoutAnalyzer(personMapping, "lastName");
       createMappingWithAndWithoutAnalyzer(personMapping, "fullName");
       createMappingWithAndWithoutAnalyzer(personMapping, "email");
@@ -166,7 +167,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
       institutionMapping.endObject().endObject();
 
       personMapping.endObject().endObject() // person
-          .endObject().endObject(); // role
+        .endObject().endObject(); // role
     }
     membershipsMapping.endObject().endObject(); // memberships
   }
@@ -230,11 +231,11 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
     }
 
     insertInSchema(schema.getChild(head).orElseGet(() -> {
-          SchemaNode newChild = new SchemaNode(head);
-          schema.addChild(newChild);
-          return newChild;
-        }),
-        path.subList(1, path.size()), vocabulary);
+        SchemaNode newChild = new SchemaNode(head);
+        schema.addChild(newChild);
+        return newChild;
+      }),
+      path.subList(1, path.size()), vocabulary);
   }
 
   protected void addTaxonomyFields(XContentBuilder mapping, Taxonomy taxonomy, List<String> ignore) throws IOException {
